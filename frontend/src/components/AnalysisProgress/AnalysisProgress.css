@@ -1,0 +1,230 @@
+/* ==========================================================================
+   AnalysisProgress Component Styles
+   ========================================================================== */
+
+.analysis-progress-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.analysis-progress__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.analysis-progress__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.analysis-progress__status-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.analysis-progress__heading {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-heading);
+}
+
+.analysis-progress__subhead {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.analysis-progress__subhead code {
+  color: var(--color-accent-cyan);
+}
+
+/* Stepper List */
+.pipeline-stepper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: relative;
+  padding-left: var(--space-2);
+}
+
+.pipeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  position: relative;
+}
+
+/* Stepper Connector Line */
+.pipeline-step__line {
+  position: absolute;
+  top: 24px;
+  left: 11px;
+  width: 2px;
+  height: calc(100% + var(--space-4));
+  background: var(--color-border);
+  z-index: 1;
+}
+
+.pipeline-step__line--completed {
+  background: var(--color-success);
+}
+
+/* Indicator */
+.pipeline-step__indicator {
+  position: relative;
+  z-index: 2;
+  background: var(--color-bg);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-icon--completed {
+  color: var(--color-success);
+}
+
+.step-icon--active {
+  color: var(--color-accent-cyan);
+}
+
+.step-icon--failed {
+  color: var(--color-danger);
+}
+
+.step-icon--pending {
+  color: var(--color-text-dim);
+  opacity: 0.5;
+}
+
+/* Step Content */
+.pipeline-step__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.pipeline-step__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.pipeline-step__number {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.pipeline-step__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.pipeline-step--active .pipeline-step__title {
+  color: var(--color-text-heading);
+}
+
+.pipeline-step--completed .pipeline-step__title {
+  color: var(--color-text);
+}
+
+.pipeline-step__badge-active {
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--color-accent-cyan);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.pipeline-step__badge-done {
+  font-size: 0.65rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.pipeline-step__desc {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+.pipeline-step--pending .pipeline-step__desc {
+  color: var(--color-text-dim);
+  opacity: 0.7;
+}
+
+/* Error Box */
+.pipeline-error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: #f87171;
+  font-size: var(--font-size-sm);
+}
+
+/* Footer Notice */
+.pipeline-footer-notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-dim);
+  line-height: var(--line-height-normal);
+}
+
+/* Utility Colors & Spin */
+.text-cyan { color: var(--color-accent-cyan); }
+.text-emerald { color: var(--color-success); }
+.text-red { color: var(--color-danger); }
+
+.icon-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -1,0 +1,136 @@
+/* ==========================================================================
+   UploadBox Component Styles
+   Accessible drag-and-drop box with forensic styling and focus rings.
+   ========================================================================== */
+
+.upload-box-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+}
+
+.upload-dropzone {
+  border: 2px dashed var(--color-border-accent);
+  background: rgba(56, 189, 248, 0.03);
+  border-radius: var(--radius-xl);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  min-height: 280px;
+}
+
+.upload-dropzone:hover {
+  background: rgba(56, 189, 248, 0.06);
+  border-color: var(--color-accent-cyan);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.15);
+}
+
+.upload-dropzone:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 4px;
+  box-shadow: var(--shadow-focus);
+}
+
+.upload-dropzone--drag-over {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: #38bdf8 !important;
+  transform: scale(1.01);
+  box-shadow: 0 0 35px rgba(56, 189, 248, 0.25);
+}
+
+.upload-dropzone__icon-wrapper {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(99, 102, 241, 0.2));
+  border: 1px solid var(--color-border-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-cyan);
+  transition: transform var(--transition-fast);
+}
+
+.upload-dropzone:hover .upload-dropzone__icon-wrapper {
+  transform: translateY(-2px);
+}
+
+.upload-dropzone__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.upload-dropzone__primary-text {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-heading);
+  letter-spacing: -0.01em;
+}
+
+.upload-dropzone__secondary-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.upload-dropzone__browse-highlight {
+  color: var(--color-accent-cyan);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
+/* Supported Format Badges */
+.upload-formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.upload-format-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px var(--space-3);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+}
+
+/* Error Alert */
+.upload-error-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: #f87171;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  animation: fadeIn var(--transition-fast) ease-out;
+}
+
+.upload-error-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-danger);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,5 @@
+# Isolated Temporary Upload Directory
+# Files stored here:
+# - Stored as opaque random UUIDs (.tmp during upload, then verified extension)
+# - Isolated outside public web root
+# - Purged after processing

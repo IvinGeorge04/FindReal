@@ -1,0 +1,79 @@
+/* ==========================================================================
+   VerdictBadge Component Styles
+   Uses CSS Tokens. Ensures WCAG AAA contrast and accessible focus.
+   ========================================================================== */
+
+.verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
+  border-width: 1px;
+  border-style: solid;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.verdict-badge__icon {
+  flex-shrink: 0;
+}
+
+.verdict-badge__label {
+  white-space: nowrap;
+}
+
+/* --- Sizes --- */
+.verdict-badge--sm {
+  padding: 0.2rem var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.verdict-badge--md {
+  padding: 0.35rem var(--space-4);
+  font-size: 0.8rem;
+}
+
+.verdict-badge--lg {
+  padding: 0.5rem var(--space-5);
+  font-size: var(--font-size-sm);
+}
+
+/* --- Variants with semantic colors & high contrast --- */
+/* 1. Verified Provenance */
+.verdict-badge--verified {
+  background-color: var(--color-success-bg);
+  color: #34d399; /* Emerald 400 - high contrast on dark bg */
+  border-color: var(--color-success-border);
+}
+
+/* 2. Likely Authentic */
+.verdict-badge--authentic {
+  background-color: var(--color-authentic-bg);
+  color: #22d3ee; /* Cyan 400 */
+  border-color: var(--color-authentic-border);
+}
+
+/* 3. Inconclusive */
+.verdict-badge--inconclusive {
+  background-color: var(--color-warning-bg);
+  color: #fbbf24; /* Amber 400 */
+  border-color: var(--color-warning-border);
+}
+
+/* 4. Suspicious */
+.verdict-badge--suspicious {
+  background-color: var(--color-info-bg);
+  color: #fb923c; /* Orange 400 */
+  border-color: var(--color-info-border);
+}
+
+/* 5. High Manipulation Risk */
+.verdict-badge--danger {
+  background-color: var(--color-danger-bg);
+  color: #f87171; /* Red 400 */
+  border-color: var(--color-danger-border);
+}

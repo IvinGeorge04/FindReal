@@ -1,0 +1,130 @@
+/* ==========================================================================
+   FindReal Global Stylesheet
+   Imports Reset, Variables, and Responsive modules.
+   Enforces accessible contrast, focus states, and forensic theme.
+   ========================================================================== */
+
+@import './reset.css';
+@import './variables.css';
+@import './responsive.css';
+
+/* Base Document Styles */
+body {
+  background-color: var(--color-bg);
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 30%, rgba(99, 102, 241, 0.05) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Accessible Keyboard Navigation & Focus Visible */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Skip-to-Content link for screen-reader & keyboard users (WCAG 2.4.1) */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--space-4);
+  background: var(--color-primary);
+  color: #ffffff;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  z-index: var(--z-toast);
+  font-weight: var(--font-weight-semibold);
+  transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+/* Screen Reader Only Utility (WCAG 4.1.2) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Accessible Typography Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text-heading);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.025em;
+}
+
+h1 {
+  font-size: var(--font-size-4xl);
+  line-height: var(--line-height-tight);
+}
+
+h2 {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-snug);
+}
+
+h3 {
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-snug);
+}
+
+p {
+  color: var(--color-text-secondary);
+}
+
+a {
+  color: var(--color-accent-cyan);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+code, kbd, pre, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* Reusable Glassmorphism Card Surface */
+.surface-card {
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.surface-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* Text Selection Color */
+::selection {
+  background: rgba(56, 189, 248, 0.3);
+  color: #ffffff;
+}

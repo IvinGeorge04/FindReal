@@ -1,0 +1,135 @@
+/* ==========================================================================
+   Login Page Styles
+   ========================================================================== */
+
+.login-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) 0 var(--space-20) 0;
+}
+
+.login-page__container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-card-wrap {
+  max-width: 480px;
+  width: 100%;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.auth-security-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-border-accent);
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-cyan);
+  line-height: var(--line-height-normal);
+}
+
+.auth-error-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: #f87171;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  animation: fadeIn 150ms ease-out;
+}
+
+.auth-error-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.form-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-icon {
+  position: absolute;
+  left: var(--space-4);
+  color: var(--color-text-dim);
+  pointer-events: none;
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4) var(--space-3) 42px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-heading);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  min-height: 44px;
+  transition: all var(--transition-fast);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-accent-cyan);
+  box-shadow: var(--shadow-focus);
+}
+
+.auth-submit-btn {
+  width: 100%;
+  min-height: 46px;
+  margin-top: var(--space-2);
+}
+
+.auth-switch-link {
+  text-align: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  padding-top: var(--space-2);
+}
+
+.switch-anchor {
+  color: var(--color-accent-cyan);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
+.switch-anchor:hover {
+  color: var(--color-primary);
+}

@@ -1,0 +1,26 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Temporary media files (keep directory placeholder)
+uploads/temp/*
+!uploads/temp/.gitkeep
+backend/uploads/temp/*
+!backend/uploads/temp/.gitkeep
+
+# Logs
+*.log
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

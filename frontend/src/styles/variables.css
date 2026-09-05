@@ -1,0 +1,148 @@
+/* ==========================================================================
+   FindReal Design System - CSS Tokens & Custom Properties
+   Theme: Precision Forensic Dark / High-Trust Verification Interface
+   ========================================================================== */
+
+:root {
+  /* --- Primary Brand & Verification Accent Colors --- */
+  --color-primary: #0284c7;             /* Sky 600 */
+  --color-primary-hover: #0369a1;       /* Sky 700 */
+  --color-primary-active: #075985;      /* Sky 800 */
+  --color-primary-subtle: rgba(2, 132, 199, 0.12);
+  --color-primary-glow: rgba(56, 189, 248, 0.35);
+
+  --color-accent-cyan: #38bdf8;         /* Cyan 400 */
+  --color-accent-indigo: #6366f1;       /* Indigo 500 */
+  --color-accent-violet: #8b5cf6;       /* Violet 500 */
+
+  /* --- Backgrounds --- */
+  --color-bg: #0b0f19;                  /* Deepest Charcoal Blue */
+  --color-bg-alt: #080c14;              /* Offset backdrop */
+  --color-bg-canvas: #0f172a;           /* Slate 900 base */
+
+  /* --- Surface & Secondary Surfaces --- */
+  --color-surface: rgba(17, 24, 39, 0.78);          /* Glass Card Surface */
+  --color-surface-hover: rgba(30, 41, 59, 0.88);     /* Interactive Surface */
+  --color-surface-elevated: #1e293b;                /* High elevation card */
+  --color-surface-secondary: #162032;               /* Sub-panel / section surface */
+  --color-surface-tertiary: #1f2e46;                /* Subtle interactive highlight */
+  --color-surface-glass: rgba(15, 23, 42, 0.65);    /* Navbar / sticky bar glass */
+
+  /* --- Typography Colors --- */
+  --color-text: #f8fafc;                /* Highest contrast reading text (Slate 50) */
+  --color-text-secondary: #cbd5e1;      /* Balanced body text (Slate 300) */
+  --color-text-muted: #94a3b8;          /* Descriptions and metadata (Slate 400) */
+  --color-text-dim: #64748b;            /* Footers and timestamps (Slate 500) */
+  --color-text-inverse: #0b0f19;        /* Text on light button badges */
+  --color-text-heading: #ffffff;        /* Pure white headlines */
+
+  /* --- Borders & Outlines --- */
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+  --color-border-accent: rgba(56, 189, 248, 0.4);
+  --color-focus-ring: #38bdf8;
+
+  /* --- Status & Probabilistic Evidence Colors --- */
+  /* 1. SUCCESS / VERIFIED PROVENANCE */
+  --color-success: #10b981;             /* Emerald 500 */
+  --color-success-hover: #059669;
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.35);
+
+  /* 2. AUTHENTIC / LIKELY AUTHENTIC */
+  --color-authentic: #06b6d4;           /* Cyan 500 */
+  --color-authentic-hover: #0891b2;
+  --color-authentic-bg: rgba(6, 182, 212, 0.12);
+  --color-authentic-border: rgba(6, 182, 212, 0.35);
+
+  /* 3. WARNING / INCONCLUSIVE */
+  --color-warning: #f59e0b;             /* Amber 500 */
+  --color-warning-hover: #d97706;
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.35);
+
+  /* 4. INFO / SUSPICIOUS */
+  --color-info: #f97316;                /* Orange 500 */
+  --color-info-hover: #ea580c;
+  --color-info-bg: rgba(249, 115, 22, 0.12);
+  --color-info-border: rgba(249, 115, 22, 0.35);
+
+  /* 5. DANGER / HIGH MANIPULATION RISK */
+  --color-danger: #ef4444;              /* Red 500 */
+  --color-danger-hover: #dc2626;
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-danger-border: rgba(239, 68, 68, 0.38);
+
+  /* --- Shadows & Elevations --- */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.65);
+  --shadow-xl: 0 20px 35px -5px rgba(0, 0, 0, 0.75);
+  --shadow-focus: 0 0 0 3px rgba(56, 189, 248, 0.5);
+  --shadow-glow: 0 0 20px -3px rgba(56, 189, 248, 0.25);
+
+  /* --- Border Radii --- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* --- Spacing Scale (Base: 4px / 0.25rem) --- */
+  --space-1: 0.25rem;    /* 4px */
+  --space-2: 0.5rem;     /* 8px */
+  --space-3: 0.75rem;    /* 12px */
+  --space-4: 1rem;       /* 16px */
+  --space-5: 1.25rem;    /* 20px */
+  --space-6: 1.5rem;     /* 24px */
+  --space-8: 2rem;       /* 32px */
+  --space-10: 2.5rem;    /* 40px */
+  --space-12: 3rem;      /* 48px */
+  --space-16: 4rem;      /* 64px */
+  --space-20: 5rem;      /* 80px */
+
+  /* --- Typography Scale --- */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+
+  --font-size-xs: 0.75rem;      /* 12px */
+  --font-size-sm: 0.875rem;     /* 14px */
+  --font-size-base: 1rem;       /* 16px */
+  --font-size-lg: 1.125rem;     /* 18px */
+  --font-size-xl: 1.25rem;      /* 20px */
+  --font-size-2xl: 1.5rem;      /* 24px */
+  --font-size-3xl: 1.875rem;    /* 30px */
+  --font-size-4xl: 2.25rem;     /* 36px */
+  --font-size-5xl: 3rem;        /* 48px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+
+  /* --- Glassmorphism & Blurs --- */
+  --glass-blur-sm: blur(8px);
+  --glass-blur-md: blur(14px);
+  --glass-blur-lg: blur(20px);
+
+  /* --- Transition Speeds --- */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Z-Index Layers --- */
+  --z-base: 1;
+  --z-card: 10;
+  --z-sticky: 100;
+  --z-drawer: 200;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-toast: 1000;
+}

@@ -1,0 +1,192 @@
+.risk-progress-card {
+  background: var(--color-surface, #131722);
+  border: 1px solid var(--color-border, #242b3d);
+  border-radius: var(--radius-lg, 12px);
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.risk-progress-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.risk-progress-card__eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary, #7e8b9f);
+  margin-bottom: 0.25rem;
+}
+
+.risk-progress-card__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+  letter-spacing: -0.01em;
+}
+
+.risk-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+}
+
+.risk-tier-badge--low {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.risk-tier-badge--moderate {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.risk-tier-badge--suspicious {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.35);
+}
+
+.risk-tier-badge--high {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.risk-progress-card__score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.risk-progress-card__numeric-display {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.risk-progress-card__number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text-primary, #ffffff);
+  font-family: var(--font-mono, monospace);
+}
+
+.risk-progress-card__scale {
+  font-size: 1rem;
+  color: var(--color-text-tertiary, #7e8b9f);
+  font-weight: 500;
+}
+
+.risk-progress-card__nature-indicator {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #9aa7b9);
+  font-style: italic;
+}
+
+/* Stepped Track */
+.risk-progress-card__track {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.risk-progress-card__fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.risk-progress-card__fill--low {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+
+.risk-progress-card__fill--moderate {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+.risk-progress-card__fill--suspicious {
+  background: linear-gradient(90deg, #ea580c, #f97316);
+}
+
+.risk-progress-card__fill--high {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+.risk-progress-card__markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.risk-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  transform: translateX(-50%);
+}
+
+.risk-progress-card__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--color-text-tertiary, #7e8b9f);
+  font-weight: 500;
+}
+
+/* Mandatory Non-Definitive Proof Notice */
+.risk-progress-card__disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-md, 8px);
+  margin-top: 0.25rem;
+}
+
+.risk-progress-card__disclaimer-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.risk-progress-card__disclaimer-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #fbbf24;
+}
+
+.risk-progress-card__disclaimer-text strong {
+  color: #ffffff;
+}

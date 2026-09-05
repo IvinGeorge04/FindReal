@@ -1,0 +1,101 @@
+/* ==========================================================================
+   Card Component Styles
+   ========================================================================== */
+
+.card-box {
+  background-color: var(--color-surface);
+  backdrop-filter: var(--glass-blur-md);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);
+}
+
+.card-box:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* --- Elevations --- */
+.card-box--elevation-sm {
+  box-shadow: var(--shadow-sm);
+}
+
+.card-box--elevation-md {
+  box-shadow: var(--shadow-md);
+}
+
+.card-box--elevation-lg {
+  box-shadow: var(--shadow-lg);
+}
+
+/* --- Variants --- */
+.card-box--surface {
+  background-color: var(--color-surface);
+}
+
+.card-box--secondary {
+  background-color: var(--color-surface-secondary);
+}
+
+.card-box--accent {
+  background-color: var(--color-surface);
+  border-color: var(--color-border-accent);
+}
+
+/* --- Header --- */
+.card-box__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+  gap: var(--space-4);
+}
+
+.card-box__title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.card-box__icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-subtle);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--color-accent-cyan);
+  flex-shrink: 0;
+}
+
+.card-box__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+}
+
+.card-box__subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* --- Body --- */
+.card-box__body {
+  padding: var(--space-6);
+  flex: 1;
+}
+
+/* --- Footer --- */
+.card-box__footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+  background: rgba(0, 0, 0, 0.15);
+  font-size: var(--font-size-xs);
+}
