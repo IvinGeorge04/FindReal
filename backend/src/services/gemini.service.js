@@ -361,23 +361,47 @@ Return your forensic assessment strictly as structured JSON adhering to this exa
     userPromptText,
   ];
 
-  // Helper execution function with transient error retries
-  const executeGeneration = async (modelName = PRIMARY_MODEL, retries = 3) => {
+  const overallStart = Date.now();
+  console.log(`[Gemini Service] Multimodal analysis started for ${mediaType} (${mimeType}). Primary model: ${PRIMARY_MODEL}`);
+
+  const executeWithTimeout = (promise, ms = 25000) => {
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`Gemini request timed out after ${ms}ms`));
+      }, ms);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+  };
+
+  // Helper execution function with transient error retries (max 2 attempts)
+  const executeGeneration = async (modelName = PRIMARY_MODEL, retries = 2) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
+      const reqStart = Date.now();
+      console.log(`[Gemini Service] Gemini request started: model=${modelName}, attempt=${attempt}/${retries}`);
       try {
-        return await ai.models.generateContent({
-          model: modelName,
-          contents,
-          config: {
-            systemInstruction: SYSTEM_INSTRUCTION,
-            responseMimeType: 'application/json',
-            temperature: 0.1, // Deterministic forensic reasoning
-          },
-        });
+        const response = await executeWithTimeout(
+          ai.models.generateContent({
+            model: modelName,
+            contents,
+            config: {
+              systemInstruction: SYSTEM_INSTRUCTION,
+              responseMimeType: 'application/json',
+              temperature: 0.1, // Deterministic forensic reasoning
+            },
+          }),
+          25000
+        );
+        const durationMs = Date.now() - reqStart;
+        console.log(`[Gemini Service] Gemini request completed: model=${modelName}, duration=${durationMs}ms`);
+        return { response, modelUsed: modelName, durationMs };
       } catch (err) {
+        const durationMs = Date.now() - reqStart;
+        const errCat = categorizeGeminiError(err);
+        console.warn(`[Gemini Service] Gemini request failed: model=${modelName}, attempt=${attempt}, duration=${durationMs}ms, errorCategory=${errCat.category}`);
         const isTransient = err.message?.includes('503') || err.message?.includes('429') || err.message?.includes('high demand');
         if (isTransient && attempt < retries) {
-          console.warn(`[Gemini Service] Transient ${modelName} error. Retrying attempt ${attempt + 1}/${retries}...`);
+          console.warn(`[Gemini Service] Transient ${modelName} error (${errCat.category}). Retrying attempt ${attempt + 1}/${retries}...`);
           await new Promise((r) => setTimeout(r, attempt * 1500));
           continue;
         }
@@ -388,18 +412,26 @@ Return your forensic assessment strictly as structured JSON adhering to this exa
 
   let rawResponse;
   let parsedJson;
+  let activeModelUsed = PRIMARY_MODEL;
 
   try {
-    rawResponse = await executeGeneration(PRIMARY_MODEL);
+    const execResult = await executeGeneration(PRIMARY_MODEL);
+    rawResponse = execResult.response;
+    activeModelUsed = execResult.modelUsed;
     parsedJson = parseModelJson(rawResponse.text);
+    console.log(`[Gemini Service] Multimodal analysis succeeded with ${activeModelUsed} in ${Date.now() - overallStart}ms`);
   } catch (initialErr) {
     // Attempt fallback models if primary model fails
     let fallbackSuccess = false;
     for (const fallbackModel of FALLBACK_MODELS) {
       try {
-        rawResponse = await executeGeneration(fallbackModel);
+        console.log(`[Gemini Service] Attempting fallback model: ${fallbackModel}`);
+        const execResult = await executeGeneration(fallbackModel);
+        rawResponse = execResult.response;
+        activeModelUsed = execResult.modelUsed;
         parsedJson = parseModelJson(rawResponse.text);
         fallbackSuccess = true;
+        console.log(`[Gemini Service] Fallback model ${fallbackModel} succeeded in ${Date.now() - overallStart}ms`);
         break;
       } catch (fbErr) {
         // Continue to next fallback
@@ -407,6 +439,9 @@ Return your forensic assessment strictly as structured JSON adhering to this exa
     }
 
     if (!fallbackSuccess) {
+      const finalCat = categorizeGeminiError(initialErr);
+      const totalDuration = Date.now() - overallStart;
+      console.error(`[Gemini Service] Multimodal analysis failed across all models after ${totalDuration}ms. Final errorCategory=${finalCat.category}`);
       throw new AppError(
         `Gemini analysis failed: ${initialErr.message}`,
         HTTP_STATUS.SERVICE_UNAVAILABLE,

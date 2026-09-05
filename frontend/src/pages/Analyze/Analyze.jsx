@@ -125,10 +125,16 @@ export default function Analyze() {
       }, 700);
 
       // Step 3: Run full forensic pipeline
-      const analysisRes = await api.post('/v1/analysis', {
-        mediaId: mediaData?.mediaId,
-        identifier: mediaData?.identifier,
-      });
+      const analysisRes = await api.post(
+        '/v1/analysis',
+        {
+          mediaId: mediaData?.mediaId,
+          identifier: mediaData?.identifier,
+        },
+        {
+          timeout: 120000, // 120s bounded timeout for multimodal AI pipeline
+        }
+      );
 
       clearInterval(timerRef.current);
 
@@ -228,11 +234,17 @@ export default function Analyze() {
       }, 700);
 
       // Step 3: Run full forensic pipeline with sourceContext
-      const analysisRes = await api.post('/v1/analysis', {
-        mediaId: mediaData?.mediaId,
-        identifier: mediaData?.identifier,
-        sourceContext: { url: urlInput.trim() },
-      });
+      const analysisRes = await api.post(
+        '/v1/analysis',
+        {
+          mediaId: mediaData?.mediaId,
+          identifier: mediaData?.identifier,
+          sourceContext: { url: urlInput.trim() },
+        },
+        {
+          timeout: 120000, // 120s bounded timeout for multimodal AI pipeline
+        }
+      );
 
       clearInterval(timerRef.current);
 
