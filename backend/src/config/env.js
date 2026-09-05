@@ -19,6 +19,7 @@ const config = {
   jwtSecret: process.env.JWT_SECRET || 'findreal_dev_jwt_secret_key_change_in_production',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
   apiPrefix: '/api/v1',
 };
 

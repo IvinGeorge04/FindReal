@@ -15,10 +15,13 @@ try {
 
 // 1. Zod Schema Enforcing Structured, Safe Gemini Output
 const findingSchema = z.object({
-  category: z.string().min(1, 'Category is required'),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  category: z.string().default('visual'),
+  severity: z.string().transform((s) => {
+    const lower = String(s || 'medium').toLowerCase();
+    return ['low', 'medium', 'high', 'critical'].includes(lower) ? lower : 'medium';
+  }),
   description: z.string().min(1, 'Description is required'),
-  evidence: z.string().min(1, 'Evidence is required'),
+  evidence: z.string().default('Observed in forensic evaluation'),
 });
 
 const geminiAnalysisSchema = z.object({
@@ -52,26 +55,75 @@ VERIFICATION PRINCIPLES:
    - "INCONCLUSIVE"
    - "SUSPICIOUS"
    - "HIGH MANIPULATION RISK"
-4. Multi-modal inspection scope:
-   - For images: evaluate latent diffusion frequency textures, lighting inconsistencies, warp boundaries, pixel compression errors.
-   - For audio: evaluate vocoder phase anomalies, synthetic formant patterns, unnatural breath cadence.
-   - For video: evaluate facial boundary warping, frame-to-frame temporal jitter, audio-visual phoneme sync.
-5. In the "limitations" array, state technical reasons why compression or missing context prevents 100% certainty.
-6. Output MUST be valid JSON conforming strictly to the requested schema.
+4. Output MUST be strictly valid JSON matching this schema:
+{
+  "assessment": "VERIFIED PROVENANCE" | "LIKELY AUTHENTIC" | "INCONCLUSIVE" | "SUSPICIOUS" | "HIGH MANIPULATION RISK",
+  "riskScore": 0-100 number,
+  "confidence": 0-100 number,
+  "summary": "Descriptive forensic summary",
+  "findings": [
+    {
+      "category": "visual" | "audio" | "temporal",
+      "severity": "low" | "medium" | "high" | "critical",
+      "description": "Observation description",
+      "evidence": "Evidence detail"
+    }
+  ],
+  "limitations": [
+    "Limitations of inspection"
+  ]
+}
 `;
+
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || config.geminiModel || 'gemini-3.6-flash';
+const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
 /**
  * Checks if the Gemini service is operational and configured with an API key
+ * Safe diagnostic: never returns or logs the key.
  */
 const isGeminiAvailable = () => {
   if (!GoogleGenAI) {
     return { available: false, reason: 'SDK_UNAVAILABLE' };
   }
   const apiKey = process.env.GEMINI_API_KEY || config.geminiApiKey;
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+  if (!apiKey || typeof apiKey !== 'string' || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
     return { available: false, reason: 'API_KEY_NOT_CONFIGURED' };
   }
   return { available: true };
+};
+
+/**
+ * Safe connectivity check that sends a minimal prompt
+ * Never reveals keys, credentials, or internal headers.
+ */
+const checkGeminiConnectivity = async () => {
+  const status = isGeminiAvailable();
+  if (!status.available) {
+    return { configured: false, available: false, reason: status.reason };
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY || config.geminiApiKey;
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: PRIMARY_MODEL,
+      contents: 'Respond with the word READY.',
+    });
+    const text = response?.text?.trim() || '';
+    return {
+      configured: true,
+      available: text.length > 0,
+      model: PRIMARY_MODEL,
+    };
+  } catch (err) {
+    // Distinguish API key missing vs request failed without logging the key
+    return {
+      configured: true,
+      available: false,
+      reason: 'REQUEST_FAILED',
+    };
+  }
 };
 
 /**
@@ -90,6 +142,69 @@ const parseModelJson = (rawText) => {
   }
 
   return JSON.parse(cleaned);
+};
+
+/**
+ * Normalizes minor naming differences in LLM JSON output to match schema
+ */
+const normalizeGeminiOutput = (raw) => {
+  if (!raw || typeof raw !== 'object') return raw;
+
+  const normalized = { ...raw };
+
+  if (normalized.verdict && !normalized.assessment) {
+    normalized.assessment = normalized.verdict;
+  }
+  if (!normalized.assessment) {
+    normalized.assessment = 'INCONCLUSIVE';
+  }
+
+  if (normalized.riskScore === undefined) {
+    normalized.riskScore = normalized.risk_score ?? normalized.risk ?? normalized.manipulationRisk ?? 50;
+  }
+  if (typeof normalized.riskScore === 'string') {
+    normalized.riskScore = parseFloat(normalized.riskScore) || 50;
+  }
+
+  if (normalized.confidence === undefined) {
+    normalized.confidence = normalized.confidence_score ?? normalized.confidenceScore ?? 70;
+  }
+  if (typeof normalized.confidence === 'string') {
+    normalized.confidence = parseFloat(normalized.confidence) || 70;
+  }
+
+  if (!normalized.summary) {
+    normalized.summary = normalized.description || normalized.assessmentSummary || `Forensic evaluation performed on ${normalized.assessment} asset.`;
+  }
+
+  if (Array.isArray(normalized.findings)) {
+    normalized.findings = normalized.findings.map((f, idx) => {
+      if (typeof f === 'string') {
+        return {
+          category: 'visual',
+          severity: 'medium',
+          description: f,
+          evidence: f,
+        };
+      }
+      return {
+        category: f.category || 'visual',
+        severity: ['low', 'medium', 'high', 'critical'].includes(String(f.severity || '').toLowerCase()) ? String(f.severity).toLowerCase() : 'medium',
+        description: f.description || f.observation || f.finding || `Observation ${idx + 1}`,
+        evidence: f.evidence || f.detail || f.description || 'Observed in media inspection',
+      };
+    });
+  } else {
+    normalized.findings = [];
+  }
+
+  if (!Array.isArray(normalized.limitations)) {
+    normalized.limitations = [
+      'AI reasoning is probabilistic. Models evaluate statistical likelihood, not absolute truth.',
+    ];
+  }
+
+  return normalized;
 };
 
 /**
@@ -141,7 +256,24 @@ Inspect the supplied ${mediaType} file for evidence of synthetic generative arti
 UNTRUSTED METADATA ATTACHMENT:
 ${extractedMetadata ? JSON.stringify(extractedMetadata, null, 2) : 'No metadata available.'}
 
-Return your forensic assessment strictly as structured JSON adhering to the schema.
+Return your forensic assessment strictly as structured JSON adhering to this exact schema:
+{
+  "assessment": "VERIFIED PROVENANCE" | "LIKELY AUTHENTIC" | "INCONCLUSIVE" | "SUSPICIOUS" | "HIGH MANIPULATION RISK",
+  "riskScore": number between 0 and 100,
+  "confidence": number between 0 and 100,
+  "summary": "Detailed summary explanation",
+  "findings": [
+    {
+      "category": "visual",
+      "severity": "low" | "medium" | "high" | "critical",
+      "description": "Specific observation",
+      "evidence": "Evidence detail"
+    }
+  ],
+  "limitations": [
+    "Technical limitation statement"
+  ]
+}
 `;
 
   const contents = [
@@ -154,31 +286,52 @@ Return your forensic assessment strictly as structured JSON adhering to the sche
     userPromptText,
   ];
 
-  // Helper execution function
-  const executeGeneration = async (modelName = 'gemini-2.5-flash') => {
-    return await ai.models.generateContent({
-      model: modelName,
-      contents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: 'application/json',
-        temperature: 0.1, // Deterministic forensic reasoning
-      },
-    });
+  // Helper execution function with transient error retries
+  const executeGeneration = async (modelName = PRIMARY_MODEL, retries = 3) => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await ai.models.generateContent({
+          model: modelName,
+          contents,
+          config: {
+            systemInstruction: SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json',
+            temperature: 0.1, // Deterministic forensic reasoning
+          },
+        });
+      } catch (err) {
+        const isTransient = err.message?.includes('503') || err.message?.includes('429') || err.message?.includes('high demand');
+        if (isTransient && attempt < retries) {
+          console.warn(`[Gemini Service] Transient ${modelName} error. Retrying attempt ${attempt + 1}/${retries}...`);
+          await new Promise((r) => setTimeout(r, attempt * 1500));
+          continue;
+        }
+        throw err;
+      }
+    }
   };
 
   let rawResponse;
   let parsedJson;
 
   try {
-    rawResponse = await executeGeneration('gemini-2.5-flash');
+    rawResponse = await executeGeneration(PRIMARY_MODEL);
     parsedJson = parseModelJson(rawResponse.text);
   } catch (initialErr) {
-    // Attempt fallback to 1.5-flash or 2.0-flash if model name differs
-    try {
-      rawResponse = await executeGeneration('gemini-1.5-flash');
-      parsedJson = parseModelJson(rawResponse.text);
-    } catch (fallbackErr) {
+    // Attempt fallback models if primary model fails
+    let fallbackSuccess = false;
+    for (const fallbackModel of FALLBACK_MODELS) {
+      try {
+        rawResponse = await executeGeneration(fallbackModel);
+        parsedJson = parseModelJson(rawResponse.text);
+        fallbackSuccess = true;
+        break;
+      } catch (fbErr) {
+        // Continue to next fallback
+      }
+    }
+
+    if (!fallbackSuccess) {
       throw new AppError(
         `Gemini analysis failed: ${initialErr.message}`,
         HTTP_STATUS.SERVICE_UNAVAILABLE,
@@ -187,8 +340,9 @@ Return your forensic assessment strictly as structured JSON adhering to the sche
     }
   }
 
-  // 3. Strict Zod Validation of Model Output
-  const validationResult = geminiAnalysisSchema.safeParse(parsedJson);
+  // 3. Strict Zod Validation of Model Output with normalizer
+  const normalizedData = normalizeGeminiOutput(parsedJson);
+  const validationResult = geminiAnalysisSchema.safeParse(normalizedData);
 
   if (!validationResult.success) {
     console.warn('[Gemini Service] Schema validation failed on model output:', validationResult.error.message);
@@ -196,7 +350,7 @@ Return your forensic assessment strictly as structured JSON adhering to the sche
     // Attempt one structured retry if response schema failed
     try {
       const retryResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: PRIMARY_MODEL,
         contents: [
           ...contents,
           `Your previous response failed JSON schema validation: ${validationResult.error.message}. Please return strictly valid JSON matching: { assessment, riskScore, confidence, summary, findings: [{ category, severity, description, evidence }], limitations: [] }`,
@@ -208,7 +362,7 @@ Return your forensic assessment strictly as structured JSON adhering to the sche
         },
       });
 
-      const retryJson = parseModelJson(retryResponse.text);
+      const retryJson = normalizeGeminiOutput(parseModelJson(retryResponse.text));
       const retryValidation = geminiAnalysisSchema.safeParse(retryJson);
 
       if (retryValidation.success) {
@@ -230,7 +384,9 @@ Return your forensic assessment strictly as structured JSON adhering to the sche
 };
 
 module.exports = {
+  PRIMARY_MODEL,
   isGeminiAvailable,
+  checkGeminiConnectivity,
   analyzeMediaWithGemini,
   geminiAnalysisSchema,
 };

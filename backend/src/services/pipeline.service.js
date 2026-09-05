@@ -131,25 +131,35 @@ const runForensicPipeline = async (media, options = {}) => {
 
   // 7. Multimodal Reasoning via Gemini
   let geminiResult = null;
+  let geminiAvailability = { status: 'UNAVAILABLE', reason: 'NOT_ATTEMPTED' };
   try {
     const isAvail = geminiService.isGeminiAvailable();
     if (isAvail.available) {
-      geminiResult = await geminiService.analyzeMediaWithGemini({
-        filePath,
-        mimeType,
-        mediaType,
-        extractedMetadata: metadataResult?.available ? metadataResult : null,
-      });
+      try {
+        geminiResult = await geminiService.analyzeMediaWithGemini({
+          filePath,
+          mimeType,
+          mediaType,
+          extractedMetadata: metadataResult?.available ? metadataResult : null,
+        });
+        geminiAvailability = { status: 'AVAILABLE', model: geminiService.PRIMARY_MODEL };
+      } catch (geminiErr) {
+        console.warn(`[Pipeline] Gemini execution failed: ${geminiErr.message}`);
+        geminiResult = null;
+        geminiAvailability = { status: 'TEMPORARILY_UNAVAILABLE', reason: 'REQUEST_FAILED' };
+      }
     } else {
-      geminiResult = null;
+      geminiAvailability = { status: 'UNAVAILABLE', reason: isAvail.reason };
     }
   } catch (err) {
     geminiResult = null;
+    geminiAvailability = { status: 'UNAVAILABLE', reason: 'UNEXPECTED_ERROR' };
   }
 
   // 8. Evidence Aggregation and Transparent Risk Assessment
   const assessmentReport = aggregationService.aggregateEvidenceAndAssessRisk({
     geminiAnalysis: geminiResult,
+    geminiAvailability,
     metadata: metadataResult,
     c2pa: c2paResult,
     mediaProcessing: mediaProcessingResult,

@@ -16,8 +16,8 @@ export default function AiAnalysisCard({ aiAnalysis, availability }) {
             AI Analysis
           </h2>
         </div>
-        <span className={`status-pill status-pill--${isAvailable ? 'available' : 'unavailable'}`}>
-          {isAvailable ? 'Available' : 'Unavailable'}
+        <span className={`status-pill status-pill--${isAvailable ? 'available' : availability?.status === 'TEMPORARILY_UNAVAILABLE' ? 'warning' : 'unavailable'}`}>
+          {isAvailable ? 'Active' : availability?.status === 'TEMPORARILY_UNAVAILABLE' ? 'Temporarily Unavailable' : 'Unavailable'}
         </span>
       </div>
 
@@ -60,17 +60,25 @@ export default function AiAnalysisCard({ aiAnalysis, availability }) {
               </div>
             )}
           </div>
+        ) : availability?.status === 'TEMPORARILY_UNAVAILABLE' ? (
+          <div className="unavailable-state">
+            <AlertCircle size={18} className="unavailable-state__icon" aria-hidden="true" />
+            <div className="unavailable-state__text">
+              <strong>Multimodal AI Engine Temporarily Unavailable</strong>
+              <p>
+                Visual neural reasoning is temporarily unavailable from the Gemini service. 
+                In adherence to FindReal's non-fabrication policy, visual scores are not simulated.
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="unavailable-state">
             <AlertCircle size={18} className="unavailable-state__icon" aria-hidden="true" />
             <div className="unavailable-state__text">
-              <strong>Multimodal AI Engine Inactive</strong>
+              <strong>Multimodal AI Engine Unavailable</strong>
               <p>
-                Visual neural reasoning is currently inactive because <code>GEMINI_API_KEY</code> is not configured in <code>backend/.env</code>. 
+                Gemini API is not configured on the server. 
                 In adherence to FindReal's non-fabrication policy, visual scores are not simulated.
-              </p>
-              <p className="ai-config-hint" style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary, #94a3b8)' }}>
-                💡 <em>Tip: Add your Google Gemini API key to <code>backend/.env</code> to activate visual deepfake & diffusion artifact analysis for images without metadata.</em>
               </p>
             </div>
           </div>

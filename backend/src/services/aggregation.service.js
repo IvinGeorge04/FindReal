@@ -74,6 +74,7 @@ const getRiskLevelFromScore = (score) => {
  */
 const aggregateEvidenceAndAssessRisk = ({
   geminiAnalysis = null,
+  geminiAvailability = null,
   metadata = null,
   c2pa = null,
   mediaProcessing = null,
@@ -87,9 +88,16 @@ const aggregateEvidenceAndAssessRisk = ({
   // -------------------------------------------------------------
   // 1. Explicit Evidence Availability Tracking
   // -------------------------------------------------------------
+  const visualStatus = geminiAnalysis && geminiAnalysis.assessment
+    ? 'AVAILABLE'
+    : geminiAvailability?.status === 'TEMPORARILY_UNAVAILABLE'
+    ? 'TEMPORARILY_UNAVAILABLE'
+    : 'UNAVAILABLE';
+
   const evidenceAvailability = {
     visualAndAudioAI: {
-      status: geminiAnalysis && geminiAnalysis.assessment ? 'AVAILABLE' : 'UNAVAILABLE',
+      status: visualStatus,
+      reason: geminiAvailability?.reason || (visualStatus === 'AVAILABLE' ? null : 'API_KEY_NOT_CONFIGURED'),
       label: 'Gemini Multimodal Reasoning',
       source: EVIDENCE_SOURCES.GEMINI_VISION,
     },
