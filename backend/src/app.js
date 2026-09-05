@@ -20,7 +20,12 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: ["'self'", config.clientUrl],
+        connectSrc: [
+          "'self'",
+          config.clientUrl,
+          'https://find-real-nops.vercel.app',
+          'https://findreal.onrender.com',
+        ],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'", 'data:', 'blob:'],
@@ -32,11 +37,22 @@ app.use(
   })
 );
 
-// 2. Strict CORS Configuration (Only allow process.env.CLIENT_URL, NEVER origin: "*")
+// 2. Strict CORS Configuration supporting production frontend and local dev
+const allowedOrigins = new Set([
+  config.clientUrl,
+  'https://find-real-nops.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+]);
+
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser requests with no origin (e.g. server-to-server or mobile) or requests from CLIENT_URL
-    if (!origin || origin === config.clientUrl) {
+    // Allow non-browser requests with no origin (e.g. server-to-server or mobile) or requests from allowed origins
+    if (!origin) {
+      return callback(null, true);
+    }
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    if (allowedOrigins.has(cleanOrigin) || allowedOrigins.has(origin)) {
       callback(null, true);
     } else {
       callback(
