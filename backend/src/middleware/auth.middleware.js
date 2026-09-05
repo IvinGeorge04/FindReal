@@ -83,6 +83,56 @@ const authenticate = async (req, res, next) => {
 };
 
 /**
+ * Optional Authentication Middleware
+ * If valid cookie or Bearer token exists, attaches verified user to req.user.
+ * If no token exists, sets req.user = null and proceeds smoothly (guest access).
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token = req.cookies?.token;
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, config.jwtSecret);
+    } catch (err) {
+      req.user = null;
+      return next();
+    }
+
+    const mongoose = require('mongoose');
+    let user = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        user = await User.findById(decoded.id).select('-password');
+      } catch (e) {
+        user = null;
+      }
+    }
+
+    if (!user) {
+      const { memoryUsers } = require('../controllers/auth.controller');
+      user = Array.from(memoryUsers.values()).find(
+        (u) => (u._id && u._id.toString() === decoded.id) || (u.id && u.id.toString() === decoded.id)
+      );
+    }
+
+    req.user = user || null;
+    next();
+  } catch (err) {
+    req.user = null;
+    next();
+  }
+};
+
+/**
  * Role-Based Access Control (RBAC) Middleware
  */
 const authorize = (...roles) => {
@@ -101,5 +151,6 @@ const authorize = (...roles) => {
 
 module.exports = {
   authenticate,
+  optionalAuth,
   authorize,
 };

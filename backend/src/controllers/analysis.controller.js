@@ -18,8 +18,8 @@ const isDbConnected = () => mongoose.connection && mongoose.connection.readyStat
  */
 const createAndRunAnalysis = async (req, res, next) => {
   try {
-    const { mediaId, identifier, sourceContext } = req.body;
-    const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
+    const { mediaId, identifier, sourceContext } = req.body || {};
+    const currentUserId = req.user ? (req.user._id ? req.user._id.toString() : req.user.id) : null;
 
     if (!mediaId && !identifier) {
       return errorResponse(
@@ -62,10 +62,10 @@ const createAndRunAnalysis = async (req, res, next) => {
 
     // 2. Ownership verification (IDOR protection)
     const mediaOwnerId = media.userId ? media.userId.toString() : null;
-    const isOwner = mediaOwnerId === currentUserId;
-    const isAdmin = req.user.role === 'admin';
+    const isOwner = !mediaOwnerId || (currentUserId && mediaOwnerId === currentUserId);
+    const isAdmin = req.user?.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (mediaOwnerId && !isOwner && !isAdmin) {
       return errorResponse(
         res,
         'You do not have authorization to analyze this media asset.',
@@ -140,8 +140,8 @@ const getAnalysisById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // 1. Authenticated user already validated via auth middleware (req.user)
-    const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
+    // 1. Resolve current user identity if authenticated
+    const currentUserId = req.user ? (req.user._id ? req.user._id.toString() : req.user.id) : null;
 
     // 2. Find analysis record
     let analysis;
@@ -160,11 +160,13 @@ const getAnalysisById = async (req, res, next) => {
     }
 
     // 3. Verify ownership (IDOR Prevention)
-    const ownerId = analysis.userId ? analysis.userId.toString() : '';
-    const isOwner = ownerId === currentUserId;
-    const isAdmin = req.user.role === 'admin';
+    // If analysis was created anonymously (!ownerId), any guest can view it.
+    // If analysis belongs to a registered user, only the owner (or admin) can view it.
+    const ownerId = analysis.userId ? analysis.userId.toString() : null;
+    const isOwner = !ownerId || (currentUserId && ownerId === currentUserId);
+    const isAdmin = req.user?.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (ownerId && !isOwner && !isAdmin) {
       return errorResponse(
         res,
         'Access denied. You do not possess authorization to view this analysis record.',
@@ -183,10 +185,13 @@ const getAnalysisById = async (req, res, next) => {
 /**
  * Get Analysis History for Current Authenticated User
  * GET /api/v1/analysis/history
- * Strict IDOR: only returns analyses belonging to req.user
+ * Strict IDOR: only returns analyses belonging to req.user; returns empty list if unauthenticated
  */
 const getAnalysisHistory = async (req, res, next) => {
   try {
+    if (!req.user) {
+      return successResponse(res, { history: [] });
+    }
     const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
 
     let records = [];

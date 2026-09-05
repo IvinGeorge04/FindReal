@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { getReportById } = require('../controllers/report.controller');
-const { authenticate } = require('../middleware/auth.middleware');
+const { optionalAuth } = require('../middleware/auth.middleware');
 
-// GET /api/v1/reports/:id - Protected with IDOR ownership validation
-router.get('/:id', authenticate, getReportById);
+// GET /api/v1/reports/:id - Public for anonymous analysis, IDOR ownership validation for user accounts
+router.get('/:id', optionalAuth, getReportById);
 
 module.exports = router;

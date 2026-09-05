@@ -6,7 +6,7 @@ const mediaSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Media record must belong to a user'],
+      required: false,
       index: true,
     },
     type: {

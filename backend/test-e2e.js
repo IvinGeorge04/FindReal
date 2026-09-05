@@ -309,6 +309,49 @@ async function runE2ETests() {
     });
     assert(spoofRes.status === 400, 'Spoofed executable disguised as .jpg correctly rejected (Status 400)');
 
+    // ----------------------------------------------------
+    // 10. Guest / Anonymous Access Flow (No Sign-In Required)
+    // ----------------------------------------------------
+    console.log('\n[Step 10] Anonymous / Guest Access (No Sign-in Required)');
+    const guestPng = Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      Buffer.alloc(32, 0),
+    ]);
+    const guestMultipart = buildMultipart('media', 'guest_photo.png', guestPng, 'image/png');
+
+    // 10.1 Guest uploads media without authentication
+    const guestUploadRes = await request('/api/v1/media/upload', {
+      method: 'POST',
+      headers: guestMultipart.headers,
+      body: guestMultipart.body,
+    });
+    assert(guestUploadRes.status === 201, 'Guest media uploaded successfully without sign-in (Status 201)');
+    const guestMediaId = guestUploadRes.data?.data?.mediaId;
+    const guestIdentifier = guestUploadRes.data?.data?.identifier;
+    assert(guestMediaId || guestIdentifier, 'Guest media record generated valid ID');
+
+    // 10.2 Guest triggers analysis without authentication
+    const guestAnalysisRes = await request('/api/v1/analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaId: guestMediaId, identifier: guestIdentifier }),
+    });
+    assert(guestAnalysisRes.status === 201, 'Guest forensic analysis completed without sign-in (Status 201)');
+    const guestAnalysisId = guestAnalysisRes.data?.data?.analysis?._id || guestAnalysisRes.data?.data?.analysis?.id;
+    assert(guestAnalysisId, 'Guest analysis record generated valid ID');
+
+    // 10.3 Guest views analysis results without authentication
+    const guestGetAnalysisRes = await request(`/api/v1/analysis/${guestAnalysisId}`);
+    assert(guestGetAnalysisRes.status === 200, 'Guest can view analysis result dossier without sign-in (Status 200)');
+
+    // 10.4 Guest views verification report without authentication
+    const guestReportRes = await request(`/api/v1/reports/${guestAnalysisId}`);
+    assert(guestReportRes.status === 200, 'Guest can view verification report without sign-in (Status 200)');
+
+    // 10.5 Unauthenticated history returns safe empty list
+    const guestHistoryRes = await request('/api/v1/analysis/history');
+    assert(guestHistoryRes.status === 200 && Array.isArray(guestHistoryRes.data?.data?.history), 'Guest history returns safe empty array (Status 200)');
+
     console.log('\n====================================================');
     console.log(`  ALL ${passed}/${total} E2E & SECURITY ASSERTIONS PASSED (100%)`);
     console.log('====================================================\n');

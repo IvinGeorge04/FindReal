@@ -18,7 +18,7 @@ const isDbConnected = () => mongoose.connection && mongoose.connection.readyStat
 const getReportById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
+    const currentUserId = req.user ? (req.user._id ? req.user._id.toString() : req.user.id) : null;
 
     // 1. Retrieve Analysis Record
     let analysis = null;
@@ -46,11 +46,13 @@ const getReportById = async (req, res, next) => {
     }
 
     // 2. IDOR Prevention: Verify Ownership
-    const ownerId = analysis.userId ? analysis.userId.toString() : '';
-    const isOwner = ownerId === currentUserId;
-    const isAdmin = req.user.role === 'admin';
+    // If report was created anonymously (!ownerId), any user or guest can view it.
+    // If report belongs to a registered user, only the owner (or admin) can view it.
+    const ownerId = analysis.userId ? analysis.userId.toString() : null;
+    const isOwner = !ownerId || (currentUserId && ownerId === currentUserId);
+    const isAdmin = req.user?.role === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (ownerId && !isOwner && !isAdmin) {
       return errorResponse(
         res,
         'Access denied. You do not possess authorization to view this verification report.',

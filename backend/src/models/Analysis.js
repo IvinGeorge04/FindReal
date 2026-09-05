@@ -6,7 +6,7 @@ const analysisSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Analysis must belong to a user'],
+      required: false,
       index: true,
     },
     mediaId: {

@@ -28,31 +28,10 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
-        {/* Protected Forensic Routes */}
-        <Route
-          path="/analyze"
-          element={
-            <ProtectedRoute>
-              <Analyze />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/results/:id"
-          element={
-            <ProtectedRoute>
-              <Results />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/results"
-          element={
-            <ProtectedRoute>
-              <Results />
-            </ProtectedRoute>
-          }
-        />
+        {/* Core Forensic Routes Accessible Without Signing In */}
+        <Route path="/analyze" element={<Analyze />} />
+        <Route path="/results/:id" element={<Results />} />
+        <Route path="/results" element={<Results />} />
         <Route
           path="/history"
           element={

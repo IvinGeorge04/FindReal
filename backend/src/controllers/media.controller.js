@@ -34,7 +34,7 @@ const uploadMedia = async (req, res, next) => {
       );
     }
 
-    const currentUserId = req.user._id || req.user.id;
+    const currentUserId = req.user ? (req.user._id || req.user.id) : null;
 
     // 2. Authoritative Magic-Byte / Binary Signature Verification
     // Never trust req.file.mimetype or req.file.originalname
@@ -142,7 +142,7 @@ const uploadMediaFromUrl = async (req, res, next) => {
     return errorResponse(res, 'Valid URL is required.', HTTP_STATUS.BAD_REQUEST, 'INVALID_URL');
   }
 
-  const currentUserId = req.user._id || req.user.id;
+  const currentUserId = req.user ? (req.user._id || req.user.id) : null;
   const tempIdentifier = crypto.randomUUID();
   const tempDownloadPath = path.join(TEMP_STORAGE_DIR, `${tempIdentifier}.tmp`);
 
