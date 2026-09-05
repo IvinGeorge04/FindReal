@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 const Analysis = require('../models/Analysis');
 const Media = require('../models/Media');
@@ -6,6 +8,7 @@ const { memoryMedia } = require('./media.controller');
 const { runForensicPipeline } = require('../services/pipeline.service');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
 const { HTTP_STATUS } = require('../utils/constants');
+const { TEMP_STORAGE_DIR } = require('../middleware/upload.middleware');
 
 // In-memory fallback for local development/offline testing
 const memoryAnalysis = new Map();
@@ -34,9 +37,9 @@ const createAndRunAnalysis = async (req, res, next) => {
     let media = null;
     try {
       if (mediaId) {
-        media = await Media.findById(mediaId);
+        media = await Media.findById(mediaId).select('+filePath');
       } else if (identifier) {
-        media = await Media.findOne({ storedIdentifier: identifier });
+        media = await Media.findOne({ storedIdentifier: identifier }).select('+filePath');
       }
     } catch (dbErr) {
       // Check in-memory fallback
@@ -49,6 +52,15 @@ const createAndRunAnalysis = async (req, res, next) => {
       media = Array.from(memoryMedia.values()).find(
         (m) => m._id === mediaId || m.id === mediaId || m.storedIdentifier === identifier
       );
+    }
+
+    // Shield against omitted or relative file path
+    if (media && !media.filePath && media.storedIdentifier) {
+      const ext = media.extension || (media.mimeType ? media.mimeType.split('/')[1] : 'png');
+      const reconstructed = path.join(TEMP_STORAGE_DIR, `${media.storedIdentifier}.${ext}`);
+      if (fs.existsSync(reconstructed)) {
+        media.filePath = reconstructed;
+      }
     }
 
     if (!media) {

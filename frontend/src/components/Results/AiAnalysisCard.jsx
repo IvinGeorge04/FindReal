@@ -4,6 +4,55 @@ import './ResultCard.css';
 
 export default function AiAnalysisCard({ aiAnalysis, availability }) {
   const isAvailable = availability?.status === 'AVAILABLE' && Boolean(aiAnalysis);
+  const reason = availability?.reason || '';
+
+  // Determine status pill and descriptive messaging:
+  // - missing key → configuration error
+  // - invalid key → authentication/API-key error
+  // - quota/rate limit → quota error
+  // - unavailable model → model error
+  // - temporary Gemini failure → service unavailable
+  // - successful Gemini request → active
+  let statusPillText = 'Unavailable';
+  let statusPillClass = 'unavailable';
+  let errorTitle = 'Multimodal AI Engine Unavailable';
+  let errorDescription = 'Gemini API is not configured on the server. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+
+  if (isAvailable) {
+    statusPillText = 'Active';
+    statusPillClass = 'available';
+  } else if (reason === 'API_KEY_INVALID') {
+    statusPillText = 'Authentication Error';
+    statusPillClass = 'unavailable';
+    errorTitle = 'Gemini Authentication Error';
+    errorDescription = 'The configured GEMINI_API_KEY was rejected by Google Gemini API. Please check your credentials in backend/.env. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  } else if (reason === 'QUOTA_EXCEEDED') {
+    statusPillText = 'Quota Error';
+    statusPillClass = 'warning';
+    errorTitle = 'Gemini Quota Exceeded';
+    errorDescription = 'Gemini API request quota or rate limit has been reached. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  } else if (reason === 'MODEL_UNAVAILABLE') {
+    statusPillText = 'Model Error';
+    statusPillClass = 'warning';
+    errorTitle = 'Gemini Model Unavailable';
+    errorDescription = 'The configured Gemini model is unavailable or retired. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  } else if (
+    availability?.status === 'TEMPORARILY_UNAVAILABLE' ||
+    reason === 'SERVICE_UNAVAILABLE' ||
+    reason === 'NETWORK_ERROR' ||
+    reason === 'SERVICE_ERROR' ||
+    reason === 'REQUEST_FAILED'
+  ) {
+    statusPillText = 'Service Unavailable';
+    statusPillClass = 'warning';
+    errorTitle = 'Multimodal AI Engine Temporarily Unavailable';
+    errorDescription = 'Visual neural reasoning is temporarily unavailable from the Gemini service. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  } else {
+    statusPillText = 'Configuration Error';
+    statusPillClass = 'unavailable';
+    errorTitle = 'Multimodal AI Engine Inactive';
+    errorDescription = 'Visual neural reasoning is currently inactive because GEMINI_API_KEY is not configured in backend/.env. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  }
 
   return (
     <section className="result-card" aria-labelledby="ai-analysis-title">
@@ -16,8 +65,8 @@ export default function AiAnalysisCard({ aiAnalysis, availability }) {
             AI Analysis
           </h2>
         </div>
-        <span className={`status-pill status-pill--${isAvailable ? 'available' : availability?.status === 'TEMPORARILY_UNAVAILABLE' ? 'warning' : 'unavailable'}`}>
-          {isAvailable ? 'Active' : availability?.status === 'TEMPORARILY_UNAVAILABLE' ? 'Temporarily Unavailable' : 'Unavailable'}
+        <span className={`status-pill status-pill--${statusPillClass}`}>
+          {statusPillText}
         </span>
       </div>
 
@@ -60,26 +109,12 @@ export default function AiAnalysisCard({ aiAnalysis, availability }) {
               </div>
             )}
           </div>
-        ) : availability?.status === 'TEMPORARILY_UNAVAILABLE' ? (
-          <div className="unavailable-state">
-            <AlertCircle size={18} className="unavailable-state__icon" aria-hidden="true" />
-            <div className="unavailable-state__text">
-              <strong>Multimodal AI Engine Temporarily Unavailable</strong>
-              <p>
-                Visual neural reasoning is temporarily unavailable from the Gemini service. 
-                In adherence to FindReal's non-fabrication policy, visual scores are not simulated.
-              </p>
-            </div>
-          </div>
         ) : (
           <div className="unavailable-state">
             <AlertCircle size={18} className="unavailable-state__icon" aria-hidden="true" />
             <div className="unavailable-state__text">
-              <strong>Multimodal AI Engine Unavailable</strong>
-              <p>
-                Gemini API is not configured on the server. 
-                In adherence to FindReal's non-fabrication policy, visual scores are not simulated.
-              </p>
+              <strong>{errorTitle}</strong>
+              <p>{errorDescription}</p>
             </div>
           </div>
         )}

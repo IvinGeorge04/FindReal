@@ -98,6 +98,8 @@ const aggregateEvidenceAndAssessRisk = ({
     visualAndAudioAI: {
       status: visualStatus,
       reason: geminiAvailability?.reason || (visualStatus === 'AVAILABLE' ? null : 'API_KEY_NOT_CONFIGURED'),
+      message: geminiAvailability?.message || null,
+      model: geminiAvailability?.model || null,
       label: 'Gemini Multimodal Reasoning',
       source: EVIDENCE_SOURCES.GEMINI_VISION,
     },

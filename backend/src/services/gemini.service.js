@@ -76,7 +76,48 @@ VERIFICATION PRINCIPLES:
 `;
 
 const PRIMARY_MODEL = process.env.GEMINI_MODEL || config.geminiModel || 'gemini-3.6-flash';
-const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+const FALLBACK_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+
+/**
+ * Sanitizes and categorizes Gemini API errors without leaking keys or credentials
+ */
+const categorizeGeminiError = (err) => {
+  if (!err) return { category: 'UNKNOWN_ERROR', status: null, message: 'Unknown error occurred.' };
+
+  const message = String(err.message || '');
+  const status = err.status || (err.error && err.error.code) || null;
+
+  // Mask any possible key or token from error messages
+  const sanitizedMessage = message
+    .replace(/key=[a-zA-Z0-9_\-]+/gi, 'key=***')
+    .replace(/AIza[a-zA-Z0-9_\-]{35}/g, 'AIza***')
+    .slice(0, 200);
+
+  if (status === 400 && (message.includes('API key') || message.includes('API_KEY_INVALID') || message.includes('API key not valid'))) {
+    return { category: 'API_KEY_INVALID', status: 400, message: 'Configured Gemini API key is invalid or unauthorized.' };
+  }
+  if (status === 403) {
+    return { category: 'API_KEY_INVALID', status: 403, message: 'Access denied for the configured Gemini API key.' };
+  }
+  if (status === 404 || message.includes('is no longer available') || message.includes('models/')) {
+    return { category: 'MODEL_UNAVAILABLE', status: 404, message: 'Configured Gemini model is retired or unavailable.' };
+  }
+  if (status === 429 || message.toLowerCase().includes('quota') || message.toLowerCase().includes('resource_exhausted')) {
+    return { category: 'QUOTA_EXCEEDED', status: 429, message: 'Gemini request quota or rate limit exceeded.' };
+  }
+  if (status === 503 || message.toLowerCase().includes('overloaded') || message.toLowerCase().includes('high demand') || message.toLowerCase().includes('unavailable')) {
+    return { category: 'SERVICE_UNAVAILABLE', status: 503, message: 'Gemini service is temporarily overloaded or unavailable.' };
+  }
+  if (message.includes('ENOTFOUND') || message.includes('ECONNREFUSED') || message.includes('ETIMEDOUT') || message.includes('fetch failed')) {
+    return { category: 'NETWORK_ERROR', status: null, message: 'Network connection to Gemini API failed.' };
+  }
+
+  return {
+    category: 'SERVICE_ERROR',
+    status: status || 500,
+    message: sanitizedMessage || 'Gemini request failed.',
+  };
+};
 
 /**
  * Checks if the Gemini service is operational and configured with an API key
@@ -96,14 +137,39 @@ const isGeminiAvailable = () => {
 /**
  * Safe connectivity check that sends a minimal prompt
  * Never reveals keys, credentials, or internal headers.
+ * Reports: SDK available, API key configured, configured model name, request success/failure, sanitized error category/status.
  */
 const checkGeminiConnectivity = async () => {
-  const status = isGeminiAvailable();
-  if (!status.available) {
-    return { configured: false, available: false, reason: status.reason };
+  const sdkAvailable = Boolean(GoogleGenAI);
+  const apiKey = process.env.GEMINI_API_KEY || config.geminiApiKey;
+  const apiKeyConfigured = Boolean(
+    apiKey && typeof apiKey === 'string' && apiKey.trim() !== '' && apiKey !== 'your_gemini_api_key_here'
+  );
+
+  if (!sdkAvailable) {
+    return {
+      sdkAvailable: false,
+      apiKeyConfigured,
+      configuredModel: PRIMARY_MODEL,
+      requestSuccess: false,
+      errorCategory: 'SDK_UNAVAILABLE',
+      errorStatus: 500,
+      errorMessage: '@google/genai SDK is not installed or available in runtime.',
+    };
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || config.geminiApiKey;
+  if (!apiKeyConfigured) {
+    return {
+      sdkAvailable: true,
+      apiKeyConfigured: false,
+      configuredModel: PRIMARY_MODEL,
+      requestSuccess: false,
+      errorCategory: 'API_KEY_NOT_CONFIGURED',
+      errorStatus: 400,
+      errorMessage: 'GEMINI_API_KEY is not configured in backend/.env.',
+    };
+  }
+
   try {
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
@@ -111,17 +177,26 @@ const checkGeminiConnectivity = async () => {
       contents: 'Respond with the word READY.',
     });
     const text = response?.text?.trim() || '';
+    const success = text.length > 0;
     return {
-      configured: true,
-      available: text.length > 0,
-      model: PRIMARY_MODEL,
+      sdkAvailable: true,
+      apiKeyConfigured: true,
+      configuredModel: PRIMARY_MODEL,
+      requestSuccess: success,
+      errorCategory: success ? null : 'EMPTY_RESPONSE',
+      errorStatus: success ? 200 : 502,
+      errorMessage: success ? null : 'Model returned empty response content.',
     };
   } catch (err) {
-    // Distinguish API key missing vs request failed without logging the key
+    const cat = categorizeGeminiError(err);
     return {
-      configured: true,
-      available: false,
-      reason: 'REQUEST_FAILED',
+      sdkAvailable: true,
+      apiKeyConfigured: true,
+      configuredModel: PRIMARY_MODEL,
+      requestSuccess: false,
+      errorCategory: cat.category,
+      errorStatus: cat.status,
+      errorMessage: cat.message,
     };
   }
 };
@@ -387,6 +462,7 @@ module.exports = {
   PRIMARY_MODEL,
   isGeminiAvailable,
   checkGeminiConnectivity,
+  categorizeGeminiError,
   analyzeMediaWithGemini,
   geminiAnalysisSchema,
 };

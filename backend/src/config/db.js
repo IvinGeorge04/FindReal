@@ -21,6 +21,9 @@ const maskMongoUri = (uri) => {
   }
 };
 
+let lastConnectAttempt = 0;
+const RECONNECT_COOLDOWN_MS = 30000;
+
 const connectDB = async (retries = 2) => {
   if (!mongoose) {
     console.warn('[Database] Mongoose package unavailable in current resolution path.');
@@ -31,13 +34,15 @@ const connectDB = async (retries = 2) => {
     return true;
   }
 
+  lastConnectAttempt = Date.now();
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const maskedUri = maskMongoUri(config.mongoUri);
       console.log(`[Database] Connecting to MongoDB Atlas: ${maskedUri} (attempt ${attempt}/${retries})`);
 
       const conn = await mongoose.connect(config.mongoUri, {
-        serverSelectionTimeoutMS: 15000,
+        serverSelectionTimeoutMS: 5000,
         dbName: 'findreal',
       });
 
@@ -58,7 +63,7 @@ const connectDB = async (retries = 2) => {
     } catch (error) {
       console.warn(`[Database] MongoDB connection attempt ${attempt} failed: ${error.message}`);
       if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 1000));
       }
     }
   }
@@ -71,6 +76,9 @@ const connectDB = async (retries = 2) => {
 const ensureDBConnection = async () => {
   if (mongoose && mongoose.connection && mongoose.connection.readyState === 1) {
     return true;
+  }
+  if (Date.now() - lastConnectAttempt < RECONNECT_COOLDOWN_MS) {
+    return false;
   }
   return connectDB(1);
 };

@@ -36,40 +36,32 @@ const getHealth = (req, res) => {
  */
 const getGeminiHealth = async (req, res) => {
   try {
-    const connectivity = await checkGeminiConnectivity();
+    const diagnostic = await checkGeminiConnectivity();
+    const status = diagnostic.requestSuccess ? HTTP_STATUS.OK : HTTP_STATUS.SERVICE_UNAVAILABLE;
 
-    if (!connectivity.configured) {
-      return res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
-        success: false,
-        data: {
-          configured: false,
-        },
-      });
-    }
-
-    if (!connectivity.available) {
-      return res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
-        success: false,
-        data: {
-          configured: true,
-          available: false,
-        },
-      });
-    }
-
-    return res.status(HTTP_STATUS.OK).json({
-      success: true,
+    return res.status(status).json({
+      success: diagnostic.requestSuccess,
       data: {
-        configured: true,
-        available: true,
+        sdkAvailable: diagnostic.sdkAvailable,
+        apiKeyConfigured: diagnostic.apiKeyConfigured,
+        configuredModel: diagnostic.configuredModel,
+        requestSuccess: diagnostic.requestSuccess,
+        errorCategory: diagnostic.errorCategory,
+        errorStatus: diagnostic.errorStatus,
+        errorMessage: diagnostic.errorMessage,
       },
     });
   } catch (err) {
     return res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
       success: false,
       data: {
-        configured: false,
-        available: false,
+        sdkAvailable: false,
+        apiKeyConfigured: false,
+        configuredModel: null,
+        requestSuccess: false,
+        errorCategory: 'INTERNAL_ERROR',
+        errorStatus: 500,
+        errorMessage: 'Health diagnostic encountered an internal error.',
       },
     });
   }

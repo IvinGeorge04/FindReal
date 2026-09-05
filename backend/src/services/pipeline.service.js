@@ -146,7 +146,13 @@ const runForensicPipeline = async (media, options = {}) => {
       } catch (geminiErr) {
         console.warn(`[Pipeline] Gemini execution failed: ${geminiErr.message}`);
         geminiResult = null;
-        geminiAvailability = { status: 'TEMPORARILY_UNAVAILABLE', reason: 'REQUEST_FAILED' };
+        const errCat = geminiService.categorizeGeminiError(geminiErr);
+        geminiAvailability = {
+          status: 'TEMPORARILY_UNAVAILABLE',
+          reason: errCat.category,
+          message: errCat.message,
+          model: geminiService.PRIMARY_MODEL,
+        };
       }
     } else {
       geminiAvailability = { status: 'UNAVAILABLE', reason: isAvail.reason };
