@@ -32,14 +32,7 @@ function App() {
         <Route path="/analyze" element={<Analyze />} />
         <Route path="/results/:id" element={<Results />} />
         <Route path="/results" element={<Results />} />
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute>
-              <History />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/history" element={<History />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

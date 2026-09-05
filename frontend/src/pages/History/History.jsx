@@ -11,20 +11,22 @@ import {
   RotateCw, 
   AlertTriangle, 
   Search, 
-  Filter,
-  ArrowRight,
-  ShieldAlert,
-  Calendar,
-  Layers,
-  Percent
+  Filter, 
+  ArrowRight, 
+  ShieldAlert, 
+  Calendar, 
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 import VerdictBadge from '../../components/VerdictBadge/VerdictBadge';
 import Button from '../../components/Button/Button';
 import './History.css';
 
 export default function History() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,21 +36,61 @@ export default function History() {
   const [deletingId, setDeletingId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
-  // Fetch authenticated user's analysis history from backend
+  // Fetch authenticated user's analysis history from backend or localStorage
   const fetchHistory = async () => {
     setLoading(true);
     setError('');
 
     try {
-      const response = await api.get('/v1/analysis/history');
-      const items = response.data?.data?.history || [];
-      setHistory(items);
+      let serverItems = [];
+      try {
+        const response = await api.get('/v1/analysis/history');
+        serverItems = response.data?.data?.history || response.data?.history || [];
+        if (!Array.isArray(serverItems)) {
+          serverItems = [];
+        }
+      } catch (apiErr) {
+        // Backend history endpoint may return empty or error if unauthenticated / offline
+        serverItems = [];
+      }
+
+      // Also merge any local guest history stored in this browser
+      let localItems = [];
+      try {
+        localItems = JSON.parse(localStorage.getItem('findreal_guest_history') || '[]');
+        if (!Array.isArray(localItems)) {
+          localItems = [];
+        }
+      } catch (e) {
+        localItems = [];
+      }
+
+      // Merge and deduplicate by ID
+      const seenIds = new Set();
+      const combined = [];
+
+      for (const rec of [...serverItems, ...localItems]) {
+        if (!rec) continue;
+        const id = (rec._id || rec.id || '').toString();
+        if (id && !seenIds.has(id)) {
+          seenIds.add(id);
+          combined.push({
+            ...rec,
+            id,
+            _id: id,
+          });
+        }
+      }
+
+      setHistory(combined);
     } catch (err) {
-      const msg =
-        err.response?.data?.error?.message ||
-        err.message ||
-        'Unable to load your analysis history. Please try again later.';
-      setError(msg);
+      // Safe fallback to local guest items on unexpected error
+      try {
+        const localItems = JSON.parse(localStorage.getItem('findreal_guest_history') || '[]');
+        setHistory(Array.isArray(localItems) ? localItems : []);
+      } catch (e) {
+        setHistory([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,15 +98,41 @@ export default function History() {
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [isAuthenticated]);
 
   // Handle Delete Analysis Record
-  const handleDelete = async (id) => {
-    setDeletingId(id);
+  const handleDelete = async (rawId) => {
+    if (!rawId) return;
+    const targetId = rawId.toString();
+    setDeletingId(targetId);
 
     try {
-      await api.delete(`/v1/analysis/${id}`);
-      setHistory((prev) => prev.filter((item) => item.id !== id));
+      // Try backend deletion if authenticated
+      if (isAuthenticated) {
+        try {
+          await api.delete(`/v1/analysis/${targetId}`);
+        } catch (apiErr) {
+          // Ignore backend delete error for guest items
+        }
+      }
+
+      // Also remove from local guest history storage
+      try {
+        const local = JSON.parse(localStorage.getItem('findreal_guest_history') || '[]');
+        if (Array.isArray(local)) {
+          const updated = local.filter((item) => {
+            const id = (item._id || item.id || '').toString();
+            return id !== targetId;
+          });
+          localStorage.setItem('findreal_guest_history', JSON.stringify(updated));
+        }
+      } catch (e) {}
+
+      // Update in-memory state
+      setHistory((prev) => prev.filter((item) => {
+        const id = (item._id || item.id || '').toString();
+        return id !== targetId;
+      }));
       setDeleteConfirmId(null);
     } catch (err) {
       alert('Failed to delete analysis record. Please try again.');
@@ -73,9 +141,10 @@ export default function History() {
     }
   };
 
-  // Helper to render media icon / placeholder thumbnail
+  // Helper to render media icon / placeholder thumbnail safely
   const renderMediaTypeIcon = (type) => {
-    switch (String(type).toLowerCase()) {
+    const safeType = String(type || '').toLowerCase();
+    switch (safeType) {
       case 'image':
         return <ImageIcon size={20} className="media-thumb-icon media-thumb-icon--image" aria-hidden="true" />;
       case 'audio':
@@ -87,12 +156,16 @@ export default function History() {
     }
   };
 
-  // Filtered History
-  const filteredHistory = history.filter((item) => {
-    const matchesSearch =
-      item.mediaName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.verdict?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = filterType === 'all' || item.mediaType === filterType;
+  // Safely filtered history
+  const safeHistoryList = Array.isArray(history) ? history : [];
+  const filteredHistory = safeHistoryList.filter((item) => {
+    if (!item) return false;
+    const name = String(item.mediaName || '').toLowerCase();
+    const verdict = String(item.verdict || '').toLowerCase();
+    const query = String(searchQuery || '').toLowerCase();
+    const matchesSearch = !query || name.includes(query) || verdict.includes(query);
+    const itemType = String(item.mediaType || '').toLowerCase();
+    const matchesType = filterType === 'all' || itemType === filterType;
     return matchesSearch && matchesType;
   });
 
@@ -122,6 +195,57 @@ export default function History() {
           </div>
         </header>
 
+        {/* Guest mode notice banner */}
+        {!isAuthenticated && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              padding: '0.85rem 1.25rem',
+              background: 'rgba(59, 130, 246, 0.08)',
+              border: '1px solid rgba(59, 130, 246, 0.25)',
+              borderRadius: '10px',
+              fontSize: '0.875rem',
+              color: '#93c5fd',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <Info size={18} style={{ color: '#60a5fa', flexShrink: 0 }} aria-hidden="true" />
+              <span>
+                <strong>Browsing as Guest:</strong> Your recent analyses on this device are displayed below. Sign in to save records permanently across devices.
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <Link
+                to="/login"
+                style={{
+                  color: '#60a5fa',
+                  fontWeight: '600',
+                  textDecoration: 'underline',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Sign In
+              </Link>
+              <span style={{ opacity: 0.5 }}>|</span>
+              <Link
+                to="/register"
+                style={{
+                  color: '#60a5fa',
+                  fontWeight: '600',
+                  textDecoration: 'underline',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Register
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Loading State */}
         {loading && (
           <div className="history-loading-state" aria-busy="true">
@@ -143,7 +267,7 @@ export default function History() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && history.length === 0 && (
+        {!loading && !error && safeHistoryList.length === 0 && (
           <div className="history-empty-state">
             <div className="history-empty-state__icon-box">
               <ShieldAlert size={48} aria-hidden="true" />
@@ -165,7 +289,7 @@ export default function History() {
         )}
 
         {/* Populated History View */}
-        {!loading && !error && history.length > 0 && (
+        {!loading && !error && safeHistoryList.length > 0 && (
           <div className="history-content">
             {/* Filter and Search Bar */}
             <div className="history-controls">
@@ -200,16 +324,27 @@ export default function History() {
             {/* Records List / Grid */}
             <div className="history-list" role="feed" aria-label="Past analyses">
               {filteredHistory.map((item) => {
-                const isConfirmingDelete = deleteConfirmId === item.id;
-                const isDeleting = deletingId === item.id;
-                const formattedDate = new Date(item.date).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                });
+                const itemId = (item._id || item.id || '').toString();
+                const isConfirmingDelete = deleteConfirmId === itemId;
+                const isDeleting = deletingId === itemId;
+
+                const dateVal = item.createdAt || item.date || item.timestamp;
+                const formattedDate = dateVal
+                  ? new Date(dateVal).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })
+                  : 'Recent';
+
+                const mediaName = item.mediaName || 'Uploaded Media';
+                const mediaTypeStr = String(item.mediaType || 'MEDIA').toUpperCase();
+                const verdict = item.verdict || 'INCONCLUSIVE';
+                const manipulationRisk = item.manipulationRisk ?? item.riskScore ?? 50;
+                const riskLevel = item.riskLevel || 'MODERATE CONCERN';
 
                 return (
-                  <article key={item.id} className="history-card">
+                  <article key={itemId || Math.random()} className="history-card">
                     <div className="history-card__main">
                       {/* Media Thumbnail Placeholder */}
                       <div className="history-card__thumbnail">
@@ -220,30 +355,30 @@ export default function History() {
                       <div className="history-card__details">
                         <div className="history-card__meta-top">
                           <span className="history-card__type-tag">
-                            {item.mediaType.toUpperCase()}
+                            {mediaTypeStr}
                           </span>
                           <span className="history-card__date">
                             <Calendar size={13} aria-hidden="true" />
-                            <time dateTime={item.date}>{formattedDate}</time>
+                            <time dateTime={dateVal ? String(dateVal) : ''}>{formattedDate}</time>
                           </span>
                         </div>
 
-                        <h2 className="history-card__filename" title={item.mediaName}>
-                          {item.mediaName}
+                        <h2 className="history-card__filename" title={mediaName}>
+                          {mediaName}
                         </h2>
 
                         <div className="history-card__indicators">
                           <div className="history-card__verdict">
-                            <VerdictBadge verdict={item.verdict} size="sm" />
+                            <VerdictBadge verdict={verdict} size="sm" />
                           </div>
 
                           <div className="history-card__risk-chip">
                             <span className="history-card__risk-label">Manipulation Risk:</span>
                             <strong className="history-card__risk-value">
-                              {item.manipulationRisk}%
+                              {manipulationRisk}%
                             </strong>
                             <span className="history-card__risk-tier">
-                              ({item.riskLevel})
+                              ({riskLevel})
                             </span>
                           </div>
                         </div>
@@ -255,7 +390,7 @@ export default function History() {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => navigate(`/results/${item.id}`)}
+                        onClick={() => navigate(`/results/${itemId}`)}
                         icon={<ExternalLink size={14} aria-hidden="true" />}
                       >
                         View Report
@@ -267,9 +402,9 @@ export default function History() {
                           <button
                             type="button"
                             className="btn-confirm-delete"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDelete(itemId)}
                             disabled={isDeleting}
-                            aria-label={`Confirm delete of ${item.mediaName}`}
+                            aria-label={`Confirm delete of ${mediaName}`}
                           >
                             {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                           </button>
@@ -286,9 +421,9 @@ export default function History() {
                         <button
                           type="button"
                           className="history-card__btn-delete"
-                          onClick={() => setDeleteConfirmId(item.id)}
+                          onClick={() => setDeleteConfirmId(itemId)}
                           title="Delete verification record"
-                          aria-label={`Delete record for ${item.mediaName}`}
+                          aria-label={`Delete record for ${mediaName}`}
                         >
                           <Trash2 size={16} aria-hidden="true" />
                         </button>

@@ -104,18 +104,16 @@ export default function Navbar() {
                 Analyze
               </Link>
             </li>
-            {isAuthenticated && (
-              <li>
-                <Link 
-                  to="/history" 
-                  className={`navbar__link ${location.pathname === '/history' ? 'navbar__link--active' : ''}`}
-                  onClick={closeMobileMenu}
-                  aria-current={location.pathname === '/history' ? 'page' : undefined}
-                >
-                  History
-                </Link>
-              </li>
-            )}
+            <li>
+              <Link 
+                to="/history" 
+                className={`navbar__link ${location.pathname === '/history' ? 'navbar__link--active' : ''}`}
+                onClick={closeMobileMenu}
+                aria-current={location.pathname === '/history' ? 'page' : undefined}
+              >
+                History
+              </Link>
+            </li>
             <li>
               <Link 
                 to="/about" 

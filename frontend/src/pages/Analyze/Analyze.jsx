@@ -19,6 +19,34 @@ import Button from '../../components/Button/Button';
 import Card from '../../components/Card/Card';
 import './Analyze.css';
 
+/**
+ * Safely cache recent analyses locally so they immediately appear
+ * in the History page even when browsing without signing in.
+ */
+const saveAnalysisToGuestHistory = (analysis) => {
+  if (!analysis) return;
+  try {
+    const existing = JSON.parse(localStorage.getItem('findreal_guest_history') || '[]');
+    const id = (analysis._id || analysis.id || '').toString();
+    if (!id) return;
+    const entry = {
+      _id: id,
+      id: id,
+      mediaName: analysis.mediaName || 'Uploaded Media',
+      mediaType: analysis.mediaType || 'image',
+      verdict: analysis.verdict || 'INCONCLUSIVE',
+      riskLevel: analysis.riskLevel || 'MODERATE CONCERN',
+      manipulationRisk: analysis.manipulationRisk ?? 50,
+      confidenceScore: analysis.confidenceScore ?? 50,
+      createdAt: analysis.createdAt || new Date().toISOString(),
+      status: analysis.status || 'completed',
+    };
+    const safeExisting = Array.isArray(existing) ? existing : [];
+    const filtered = safeExisting.filter(e => (e._id || e.id || '').toString() !== id);
+    localStorage.setItem('findreal_guest_history', JSON.stringify([entry, ...filtered].slice(0, 50)));
+  } catch (e) {}
+};
+
 export default function Analyze() {
   const navigate = useNavigate();
 
@@ -107,6 +135,9 @@ export default function Analyze() {
       const analysis = analysisRes.data?.data?.analysis;
       setActiveStageIndex(8); // Completed stage
       setAnalysisStatus('completed');
+
+      // Cache analysis in guest history so it appears on History page
+      saveAnalysisToGuestHistory(analysis);
 
       // Seamlessly navigate to Results Dashboard
       setTimeout(() => {
@@ -208,6 +239,9 @@ export default function Analyze() {
       const analysis = analysisRes.data?.data?.analysis;
       setActiveStageIndex(8);
       setAnalysisStatus('completed');
+
+      // Cache analysis in guest history so it appears on History page
+      saveAnalysisToGuestHistory(analysis);
 
       setTimeout(() => {
         if (analysis) {
