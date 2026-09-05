@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Media = require('../models/Media');
+const { ensureDBConnection } = require('../config/db');
 const { validateFileMagicBytes } = require('../utils/magicBytes');
 const { deleteFileSafely, sanitizeOriginalFilename } = require('../utils/cleanup');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
@@ -64,6 +65,10 @@ const uploadMedia = async (req, res, next) => {
     const cleanOriginalName = sanitizeOriginalFilename(req.file.originalname);
 
     // 6. Create Media Record
+    if (!isDbConnected()) {
+      await ensureDBConnection();
+    }
+
     let media = null;
     if (isDbConnected()) {
       try {
@@ -78,14 +83,16 @@ const uploadMedia = async (req, res, next) => {
           size: req.file.size,
           status: 'uploaded',
         });
+        console.log(`[Media] Media uploaded and persisted to MongoDB: ${media._id} (${media.originalName})`);
       } catch (dbErr) {
+        console.error(`[Media] Database write failed for media: ${dbErr.message}`);
         media = null;
       }
     }
 
     if (!media) {
       // In-memory fallback if MongoDB daemon is disconnected
-      const mockId = 'med_' + Date.now();
+      const mockId = new mongoose.Types.ObjectId().toString();
       const mockMedia = {
         _id: mockId,
         id: mockId,

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const User = require('../models/User');
+const { ensureDBConnection } = require('../config/db');
 const { generateToken, setAuthCookie, clearAuthCookie } = require('../utils/token');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
 const { HTTP_STATUS } = require('../utils/constants');
@@ -16,6 +17,11 @@ const isDbConnected = () => mongoose.connection && mongoose.connection.readyStat
 const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
+
+    // Ensure database connection is active
+    if (!isDbConnected()) {
+      await ensureDBConnection();
+    }
 
     let existingUser = null;
     if (isDbConnected()) {
@@ -41,7 +47,9 @@ const register = async (req, res, next) => {
     if (isDbConnected()) {
       try {
         user = await User.create({ name, email, password });
+        console.log(`[Auth] User registered and persisted to MongoDB: ${user._id} (${user.email})`);
       } catch (dbErr) {
+        console.error(`[Auth] Database write failed for user: ${dbErr.message}`);
         user = null;
       }
     }
@@ -50,7 +58,7 @@ const register = async (req, res, next) => {
       // Fallback for offline local dev without MongoDB
       const bcrypt = require('bcryptjs');
       const hashedPassword = await bcrypt.hash(password, 12);
-      const mockId = 'usr_' + Date.now();
+      const mockId = new mongoose.Types.ObjectId().toString();
       const mockUser = {
         _id: mockId,
         id: mockId,
@@ -69,6 +77,7 @@ const register = async (req, res, next) => {
       };
       memoryUsers.set(email, mockUser);
       user = mockUser;
+      console.warn(`[Auth] User stored in temporary in-memory fallback: ${user._id} (${user.email})`);
     }
 
     const token = generateToken(user);
@@ -93,6 +102,11 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+
+    // Ensure database connection is active
+    if (!isDbConnected()) {
+      await ensureDBConnection();
+    }
 
     let user = null;
     if (isDbConnected()) {

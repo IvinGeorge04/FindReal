@@ -14,6 +14,26 @@ export default function Button({
   className = '',
   ...rest
 }) {
+  const iconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
+
+  const renderIcon = (pos) => {
+    if (!Icon || iconPosition !== pos) return null;
+
+    if (React.isValidElement(Icon)) {
+      return React.cloneElement(Icon, {
+        className: `btn__icon btn__icon--${pos} ${Icon.props.className || ''}`.trim(),
+        'aria-hidden': 'true',
+      });
+    }
+
+    if (typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null)) {
+      const Component = Icon;
+      return <Component size={iconSize} className={`btn__icon btn__icon--${pos}`} aria-hidden="true" />;
+    }
+
+    return null;
+  };
+
   return (
     <button
       type={type}
@@ -23,13 +43,9 @@ export default function Button({
       aria-label={ariaLabel}
       {...rest}
     >
-      {Icon && iconPosition === 'left' && (
-        <Icon size={size === 'sm' ? 14 : size === 'lg' ? 20 : 16} className="btn__icon btn__icon--left" aria-hidden="true" />
-      )}
+      {renderIcon('left')}
       <span className="btn__text">{children}</span>
-      {Icon && iconPosition === 'right' && (
-        <Icon size={size === 'sm' ? 14 : size === 'lg' ? 20 : 16} className="btn__icon btn__icon--right" aria-hidden="true" />
-      )}
+      {renderIcon('right')}
     </button>
   );
 }

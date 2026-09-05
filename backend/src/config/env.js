@@ -14,7 +14,7 @@ const config = {
   port: parseInt(process.env.PORT || '5000', 10),
   clientUrl,
   backendUrl: (process.env.BACKEND_URL || 'https://findreal.onrender.com').replace(/\/+$/, ''),
-  mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/findreal',
+  mongoUri: process.env.MONGODB_URI || 'mongodb+srv://igfigma:figma@sjcet-website.aij6tqd.mongodb.net/findreal?retryWrites=true&w=majority&appName=SJCET-website',
   bodyLimit: process.env.BODY_LIMIT || '10mb',
   jwtSecret: process.env.JWT_SECRET || 'findreal_dev_jwt_secret_key_change_in_production',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',

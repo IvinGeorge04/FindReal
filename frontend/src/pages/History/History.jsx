@@ -24,7 +24,7 @@ import VerdictBadge from '../../components/VerdictBadge/VerdictBadge';
 import Button from '../../components/Button/Button';
 import './History.css';
 
-export default function History() {
+function HistoryContent() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
@@ -188,7 +188,7 @@ export default function History() {
             <Button
               variant="primary"
               onClick={() => navigate('/analyze')}
-              icon={<ArrowRight size={16} aria-hidden="true" />}
+              icon={ArrowRight}
             >
               New Analysis
             </Button>
@@ -281,7 +281,7 @@ export default function History() {
               variant="primary"
               size="lg"
               onClick={() => navigate('/analyze')}
-              icon={<ArrowRight size={18} aria-hidden="true" />}
+              icon={ArrowRight}
             >
               Analyze Your First Media
             </Button>
@@ -328,14 +328,22 @@ export default function History() {
                 const isConfirmingDelete = deleteConfirmId === itemId;
                 const isDeleting = deletingId === itemId;
 
+                let formattedDate = 'Recent';
                 const dateVal = item.createdAt || item.date || item.timestamp;
-                const formattedDate = dateVal
-                  ? new Date(dateVal).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                  : 'Recent';
+                if (dateVal) {
+                  try {
+                    const parsedDate = new Date(dateVal);
+                    if (!isNaN(parsedDate.getTime())) {
+                      formattedDate = parsedDate.toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      });
+                    }
+                  } catch (e) {
+                    formattedDate = 'Recent';
+                  }
+                }
 
                 const mediaName = item.mediaName || 'Uploaded Media';
                 const mediaTypeStr = String(item.mediaType || 'MEDIA').toUpperCase();
@@ -391,7 +399,7 @@ export default function History() {
                         variant="primary"
                         size="sm"
                         onClick={() => navigate(`/results/${itemId}`)}
-                        icon={<ExternalLink size={14} aria-hidden="true" />}
+                        icon={ExternalLink}
                       >
                         View Report
                       </Button>
@@ -443,5 +451,57 @@ export default function History() {
         )}
       </div>
     </main>
+  );
+}
+
+class HistoryErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('[History Page Error]', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main id="main-content" className="history-page">
+          <div className="container history-page__container">
+            <div className="history-error-state" role="alert">
+              <AlertTriangle size={36} className="history-error-icon" aria-hidden="true" />
+              <h2 className="history-error-title">Unable to Load History</h2>
+              <p className="history-error-text">
+                An unexpected display issue occurred while loading verification records.
+              </p>
+              <button
+                type="button"
+                className="btn btn--primary btn--md"
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function History() {
+  return (
+    <HistoryErrorBoundary>
+      <HistoryContent />
+    </HistoryErrorBoundary>
   );
 }

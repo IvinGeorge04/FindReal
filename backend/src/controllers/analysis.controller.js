@@ -1,7 +1,7 @@
-require('../config/resolveModules');
 const mongoose = require('mongoose');
 const Analysis = require('../models/Analysis');
 const Media = require('../models/Media');
+const { ensureDBConnection } = require('../config/db');
 const { memoryMedia } = require('./media.controller');
 const { runForensicPipeline } = require('../services/pipeline.service');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
@@ -78,6 +78,10 @@ const createAndRunAnalysis = async (req, res, next) => {
     const pipelineReport = await runForensicPipeline(media, { sourceContext });
 
     // 4. Save Analysis Record
+    if (!isDbConnected()) {
+      await ensureDBConnection();
+    }
+
     const analysisPayload = {
       userId: currentUserId,
       mediaId: media._id || media.id,
@@ -104,11 +108,19 @@ const createAndRunAnalysis = async (req, res, next) => {
     };
 
     let savedAnalysis = null;
-    try {
-      savedAnalysis = await Analysis.create(analysisPayload);
-    } catch (saveErr) {
+    if (isDbConnected()) {
+      try {
+        savedAnalysis = await Analysis.create(analysisPayload);
+        console.log(`[Analysis] Analysis record saved and persisted to MongoDB: ${savedAnalysis._id}`);
+      } catch (saveErr) {
+        console.error(`[Analysis] Database save failed for analysis: ${saveErr.message}`);
+        savedAnalysis = null;
+      }
+    }
+
+    if (!savedAnalysis) {
       // In-memory fallback
-      const mockAnalysisId = 'ans_' + Date.now();
+      const mockAnalysisId = new mongoose.Types.ObjectId().toString();
       savedAnalysis = {
         _id: mockAnalysisId,
         id: mockAnalysisId,
@@ -120,6 +132,7 @@ const createAndRunAnalysis = async (req, res, next) => {
         },
       };
       memoryAnalysis.set(mockAnalysisId, savedAnalysis);
+      console.warn(`[Analysis] Stored in in-memory fallback: ${mockAnalysisId}`);
     }
 
     return successResponse(
@@ -194,14 +207,24 @@ const getAnalysisHistory = async (req, res, next) => {
     }
     const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
 
+    if (!isDbConnected()) {
+      await ensureDBConnection();
+    }
+
     let records = [];
     if (isDbConnected()) {
       try {
-        records = await Analysis.find({ userId: currentUserId })
+        const queryConditions = [{ userId: currentUserId }];
+        if (mongoose.Types.ObjectId.isValid(currentUserId)) {
+          queryConditions.push({ userId: new mongoose.Types.ObjectId(currentUserId) });
+        }
+
+        records = await Analysis.find({ $or: queryConditions })
           .sort({ createdAt: -1 })
           .select('_id mediaName mediaType verdict riskLevel manipulationRisk confidenceScore createdAt fileSize status')
           .lean();
       } catch (dbErr) {
+        console.error(`[Analysis] Error fetching history from MongoDB: ${dbErr.message}`);
         records = [];
       }
     }
@@ -217,13 +240,15 @@ const getAnalysisHistory = async (req, res, next) => {
 
     const history = (records || []).map((item) => ({
       id: item._id ? item._id.toString() : item.id,
-      mediaName: item.mediaName,
-      mediaType: item.mediaType,
-      verdict: item.verdict,
+      _id: item._id ? item._id.toString() : item.id,
+      mediaName: item.mediaName || 'Uploaded Media',
+      mediaType: item.mediaType || 'image',
+      verdict: item.verdict || 'INCONCLUSIVE',
       riskLevel: item.riskLevel || 'MODERATE CONCERN',
       manipulationRisk: typeof item.manipulationRisk === 'number' ? item.manipulationRisk : 50,
       confidenceScore: item.confidenceScore || 65,
       date: item.createdAt || new Date().toISOString(),
+      createdAt: item.createdAt || new Date().toISOString(),
       fileSize: item.fileSize || null,
       status: item.status || 'completed',
     }));
