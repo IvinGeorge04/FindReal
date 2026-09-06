@@ -1,6 +1,7 @@
 require('../config/resolveModules');
 const { execFile } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 let c2paToolCache = null;
 
@@ -48,41 +49,107 @@ const C2PA_STATUS_EXPLANATIONS = {
 };
 
 /**
- * Checks whether the c2patool binary is installed in system PATH
+ * Resolves the path to the c2patool binary.
+ * Priority:
+ * 1. C2PA_TOOL_PATH environment variable
+ * 2. Bundled / local project binary in backend/bin/ (c2patool or c2patool.exe)
+ * 3. System PATH ('c2patool', 'c2pa-tool')
  */
-const checkC2paAvailability = async () => {
-  if (c2paToolCache !== null) {
+const findC2paBinary = () => {
+  if (process.env.C2PA_TOOL_PATH && fs.existsSync(process.env.C2PA_TOOL_PATH)) {
+    return process.env.C2PA_TOOL_PATH;
+  }
+
+  const isWin = process.platform === 'win32';
+  const binName = isWin ? 'c2patool.exe' : 'c2patool';
+
+  // 1. backend/bin/c2patool
+  const projectBin = path.resolve(__dirname, '../../bin', binName);
+  if (fs.existsSync(projectBin)) {
+    return projectBin;
+  }
+
+  // 2. Alternate relative path
+  const srcBin = path.resolve(__dirname, '../bin', binName);
+  if (fs.existsSync(srcBin)) {
+    return srcBin;
+  }
+
+  // 3. Fallback to system PATH binary name
+  return 'c2patool';
+};
+
+/**
+ * Checks whether the c2patool binary is available and executable
+ */
+const checkC2paAvailability = async (forceRefresh = false) => {
+  if (!forceRefresh && c2paToolCache !== null) {
     return c2paToolCache;
   }
 
+  const resolvedBinary = findC2paBinary();
+
   return new Promise((resolve) => {
-    execFile('c2patool', ['--version'], { timeout: 1000 }, (error, stdout) => {
-      if (error) {
-        // Check alternate executable name
-        execFile('c2pa-tool', ['--version'], { timeout: 1000 }, (err2, stdout2) => {
-          if (err2) {
+    execFile(resolvedBinary, ['--version'], { timeout: 3000 }, (error, stdout) => {
+      if (!error && stdout) {
+        c2paToolCache = {
+          available: true,
+          binary: resolvedBinary,
+          version: stdout.trim(),
+        };
+        return resolve(c2paToolCache);
+      }
+
+      // If resolvedBinary wasn't 'c2patool', check system PATH 'c2patool'
+      if (resolvedBinary !== 'c2patool') {
+        execFile('c2patool', ['--version'], { timeout: 3000 }, (errPath, stdoutPath) => {
+          if (!errPath && stdoutPath) {
             c2paToolCache = {
-              available: false,
-              binary: null,
-              version: null,
-              reason: 'C2PA CLI binary (c2patool) not found in system PATH.',
+              available: true,
+              binary: 'c2patool',
+              version: stdoutPath.trim(),
             };
-          } else {
+            return resolve(c2paToolCache);
+          }
+
+          // Try alternate executable name 'c2pa-tool'
+          execFile('c2pa-tool', ['--version'], { timeout: 3000 }, (err2, stdout2) => {
+            if (!err2 && stdout2) {
+              c2paToolCache = {
+                available: true,
+                binary: 'c2pa-tool',
+                version: stdout2.trim(),
+              };
+            } else {
+              c2paToolCache = {
+                available: false,
+                binary: null,
+                version: null,
+                reason: 'C2PA extraction utility (c2patool) was not accessible in the server runtime environment.',
+              };
+            }
+            resolve(c2paToolCache);
+          });
+        });
+      } else {
+        // Try alternate executable name 'c2pa-tool'
+        execFile('c2pa-tool', ['--version'], { timeout: 3000 }, (err2, stdout2) => {
+          if (!err2 && stdout2) {
             c2paToolCache = {
               available: true,
               binary: 'c2pa-tool',
               version: stdout2.trim(),
             };
+          } else {
+            c2paToolCache = {
+              available: false,
+              binary: null,
+              version: null,
+              reason: 'C2PA extraction utility (c2patool) was not accessible in the server runtime environment.',
+            };
           }
           resolve(c2paToolCache);
         });
-      } else {
-        c2paToolCache = {
-          available: true,
-          binary: 'c2patool',
-          version: stdout.trim(),
-        };
-        resolve(c2paToolCache);
       }
     });
   });
@@ -130,7 +197,7 @@ const inspectC2paProvenance = async (filePath) => {
     execFile(
       toolCheck.binary,
       [filePath],
-      { timeout: 10000, maxBuffer: 10 * 1024 * 1024 },
+      { timeout: 15000, maxBuffer: 10 * 1024 * 1024 },
       (error, stdout, stderr) => {
         const combinedOutput = `${stdout || ''} ${stderr || ''}`;
 
@@ -140,7 +207,8 @@ const inspectC2paProvenance = async (filePath) => {
           (combinedOutput.includes('No claim found') ||
             combinedOutput.includes('no manifest') ||
             combinedOutput.includes('No JUMBF') ||
-            combinedOutput.includes('ManifestNotFound'))
+            combinedOutput.includes('ManifestNotFound') ||
+            combinedOutput.includes('no claim'))
         ) {
           const explanation = C2PA_STATUS_EXPLANATIONS.NOT_FOUND;
           return resolve({
@@ -153,10 +221,13 @@ const inspectC2paProvenance = async (filePath) => {
           });
         }
 
-        // If command failed with another error
-        if (error) {
-          // If output has validation errors, it may be an INVALID manifest
-          if (combinedOutput.includes('validation_status') || combinedOutput.includes('validation error')) {
+        // If error occurred and not JSON output
+        if (error && !stdout.trim().startsWith('{')) {
+          if (
+            combinedOutput.includes('validation_status') ||
+            combinedOutput.includes('validation error') ||
+            combinedOutput.includes('Invalid')
+          ) {
             const explanation = C2PA_STATUS_EXPLANATIONS.INVALID;
             return resolve({
               status: 'INVALID',
@@ -168,7 +239,7 @@ const inspectC2paProvenance = async (filePath) => {
             });
           }
 
-          // Otherwise, general NOT_FOUND fallback if no claim
+          // General NOT_FOUND fallback if no claim
           const explanation = C2PA_STATUS_EXPLANATIONS.NOT_FOUND;
           return resolve({
             status: 'NOT_FOUND',
@@ -183,10 +254,22 @@ const inspectC2paProvenance = async (filePath) => {
         // Successfully parsed manifest output
         try {
           const manifestData = JSON.parse(stdout);
-          const validationStatus = manifestData.validation_status || [];
-          const hasValidationErrors = validationStatus.some((s) => s.code && s.code !== 'claim.valid');
+          const activeManifestKey = manifestData.active_manifest;
+          const activeManifest =
+            (manifestData.manifests && activeManifestKey && manifestData.manifests[activeManifestKey]) ||
+            manifestData;
 
-          const status = hasValidationErrors ? 'INVALID' : 'VALID';
+          const validationStatus = manifestData.validation_status || [];
+          const hasValidationErrors = validationStatus.some(
+            (s) => s.code && s.code !== 'claim.valid' && !s.code.includes('untrusted')
+          );
+
+          // If validation_state is explicitly 'Valid' or no structural errors
+          const isValid =
+            manifestData.validation_state === 'Valid' ||
+            (!hasValidationErrors && (!manifestData.validation_state || manifestData.validation_state !== 'Invalid'));
+
+          const status = isValid ? 'VALID' : 'INVALID';
           const explanation = C2PA_STATUS_EXPLANATIONS[status];
 
           return resolve({
@@ -196,11 +279,17 @@ const inspectC2paProvenance = async (filePath) => {
             explanation: explanation.description,
             forensicImplication: explanation.forensicImplication,
             manifest: {
-              title: manifestData.title || null,
-              format: manifestData.format || null,
-              claimGenerator: manifestData.claim_generator || null,
-              issuer: manifestData.issuer || null,
-              assertions: Array.isArray(manifestData.assertions)
+              title: activeManifest.title || manifestData.title || null,
+              format: activeManifest.format || manifestData.format || null,
+              claimGenerator: activeManifest.claim_generator || manifestData.claim_generator || null,
+              issuer:
+                activeManifest.signature_info?.issuer ||
+                activeManifest.signature_info?.common_name ||
+                manifestData.issuer ||
+                null,
+              assertions: Array.isArray(activeManifest.assertions)
+                ? activeManifest.assertions.map((a) => a.label || a.type)
+                : Array.isArray(manifestData.assertions)
                 ? manifestData.assertions.map((a) => a.label || a.type)
                 : [],
               validationStatus,
@@ -229,5 +318,6 @@ const inspectC2paProvenance = async (filePath) => {
 module.exports = {
   checkC2paAvailability,
   inspectC2paProvenance,
+  verifyC2PA: inspectC2paProvenance, // CRITICAL: ensures pipeline.service.js verifyC2PA calls succeed
   C2PA_STATUS_EXPLANATIONS,
 };

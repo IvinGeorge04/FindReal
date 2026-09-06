@@ -16,6 +16,9 @@ uploads/temp/*
 backend/uploads/temp/*
 !backend/uploads/temp/.gitkeep
 
+# Downloaded CLI binaries
+backend/bin/
+
 # Logs
 *.log
 
