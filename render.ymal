@@ -18,5 +18,7 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: GEMINI_API_KEY
+      - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.6-27b

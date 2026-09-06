@@ -5,7 +5,7 @@ const metadataService = require('./metadata.service');
 const c2paService = require('./c2pa.service');
 const ffmpegService = require('./ffmpeg.service');
 const transcriptionService = require('./transcription.service');
-const geminiService = require('./gemini.service');
+const groqService = require('./groq.service');
 const factcheckService = require('./factcheck.service');
 const sourceContextService = require('./sourceContext.service');
 const aggregationService = require('./aggregation.service');
@@ -19,7 +19,7 @@ const { TEMP_STORAGE_DIR } = require('../middleware/upload.middleware');
  * - If C2PA is missing: continues with controlled UNAVAILABLE.
  * - If FFmpeg is missing: continues with controlled UNAVAILABLE.
  * - If Whisper is missing: continues with controlled UNAVAILABLE.
- * - If Gemini is unconfigured/fails: continues with controlled UNAVAILABLE, aggregating other signals.
+ * - If Groq is unconfigured/fails: continues with controlled UNAVAILABLE, aggregating other signals.
  * - If Fact Check API is unconfigured: continues with controlled UNAVAILABLE (never invents).
  * - Never crashes the application.
  *
@@ -129,43 +129,49 @@ const runForensicPipeline = async (media, options = {}) => {
     };
   }
 
-  // 7. Multimodal Reasoning via Gemini
-  let geminiResult = null;
-  let geminiAvailability = { status: 'UNAVAILABLE', reason: 'NOT_ATTEMPTED' };
+  // 7. Multimodal Reasoning via Groq
+  let groqResult = null;
+  let groqAvailability = { status: 'UNAVAILABLE', reason: 'NOT_ATTEMPTED' };
   try {
-    const isAvail = geminiService.isGeminiAvailable();
+    const isAvail = groqService.isGroqAvailable();
     if (isAvail.available) {
       try {
-        geminiResult = await geminiService.analyzeMediaWithGemini({
+        groqResult = await groqService.analyzeMediaWithGroq({
           filePath,
           mimeType,
           mediaType,
           extractedMetadata: metadataResult?.available ? metadataResult : null,
+          frames: mediaProcessingResult?.frames || [],
+          transcript: transcriptionResult?.transcript || null,
+          audioDetails: mediaProcessingResult?.audioDetails || null,
+          videoDetails: mediaProcessingResult?.videoDetails || null,
         });
-        geminiAvailability = { status: 'AVAILABLE', model: geminiService.PRIMARY_MODEL };
-      } catch (geminiErr) {
-        console.warn(`[Pipeline] Gemini execution failed: ${geminiErr.message}`);
-        geminiResult = null;
-        const errCat = geminiService.categorizeGeminiError(geminiErr);
-        geminiAvailability = {
+        groqAvailability = { status: 'AVAILABLE', model: groqService.PRIMARY_MODEL };
+      } catch (groqErr) {
+        console.warn(`[Pipeline] Groq execution failed: ${groqErr.message}`);
+        groqResult = null;
+        const errCat = groqService.categorizeGroqError(groqErr);
+        groqAvailability = {
           status: 'TEMPORARILY_UNAVAILABLE',
           reason: errCat.category,
           message: errCat.message,
-          model: geminiService.PRIMARY_MODEL,
+          model: groqService.PRIMARY_MODEL,
         };
       }
     } else {
-      geminiAvailability = { status: 'UNAVAILABLE', reason: isAvail.reason };
+      groqAvailability = { status: 'UNAVAILABLE', reason: isAvail.reason };
     }
   } catch (err) {
-    geminiResult = null;
-    geminiAvailability = { status: 'UNAVAILABLE', reason: 'UNEXPECTED_ERROR' };
+    groqResult = null;
+    groqAvailability = { status: 'UNAVAILABLE', reason: 'UNEXPECTED_ERROR' };
   }
 
   // 8. Evidence Aggregation and Transparent Risk Assessment
   const assessmentReport = aggregationService.aggregateEvidenceAndAssessRisk({
-    geminiAnalysis: geminiResult,
-    geminiAvailability,
+    groqAnalysis: groqResult,
+    groqAvailability,
+    geminiAnalysis: groqResult, // backwards-compatible alias
+    geminiAvailability: groqAvailability, // backwards-compatible alias
     metadata: metadataResult,
     c2pa: c2paResult,
     mediaProcessing: mediaProcessingResult,
@@ -181,7 +187,8 @@ const runForensicPipeline = async (media, options = {}) => {
       c2pa: c2paResult,
       mediaProcessing: mediaProcessingResult,
       transcription: transcriptionResult,
-      gemini: geminiResult,
+      groq: groqResult,
+      gemini: groqResult, // legacy alias for consumers expecting .gemini
       sourceContext: sourceContextResult,
       factCheck: factCheckResult,
     },

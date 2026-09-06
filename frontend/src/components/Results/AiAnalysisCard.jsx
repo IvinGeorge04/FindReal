@@ -6,38 +6,40 @@ export default function AiAnalysisCard({ aiAnalysis, availability }) {
   const isAvailable = availability?.status === 'AVAILABLE' && Boolean(aiAnalysis);
   const reason = availability?.reason || '';
 
-  // Determine status pill and descriptive messaging:
-  // - missing key → configuration error
-  // - invalid key → authentication/API-key error
-  // - quota/rate limit → quota error
-  // - unavailable model → model error
-  // - temporary Gemini failure → service unavailable
-  // - successful Gemini request → active
+  // Determine status pill and descriptive messaging for Groq AI engine:
+  // - missing key -> configuration error
+  // - invalid key -> authentication error
+  // - quota/rate limit -> rate limit error
+  // - unavailable model -> model error
+  // - temporary service issue -> service unavailable
+  // - successful Groq request -> active
   let statusPillText = 'Unavailable';
   let statusPillClass = 'unavailable';
   let errorTitle = 'Multimodal AI Engine Unavailable';
-  let errorDescription = 'Gemini API is not configured on the server. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  let errorDescription = 'Groq API is not configured on the server. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
 
   if (isAvailable) {
     statusPillText = 'Active';
     statusPillClass = 'available';
-  } else if (reason === 'API_KEY_INVALID') {
+  } else if (reason === 'GROQ_AUTH_ERROR' || reason === 'API_KEY_INVALID') {
     statusPillText = 'Authentication Error';
     statusPillClass = 'unavailable';
-    errorTitle = 'Gemini Authentication Error';
-    errorDescription = 'The configured GEMINI_API_KEY was rejected by Google Gemini API. Please check your credentials in backend/.env. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
-  } else if (reason === 'QUOTA_EXCEEDED') {
-    statusPillText = 'Quota Error';
+    errorTitle = 'Groq Authentication Error';
+    errorDescription = 'The configured GROQ_API_KEY was rejected by Groq API. Please check your credentials in backend/.env. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  } else if (reason === 'GROQ_RATE_LIMITED' || reason === 'QUOTA_EXCEEDED') {
+    statusPillText = 'Rate Limited';
     statusPillClass = 'warning';
-    errorTitle = 'Gemini Quota Exceeded';
-    errorDescription = 'Gemini API request quota or rate limit has been reached. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
-  } else if (reason === 'MODEL_UNAVAILABLE') {
+    errorTitle = 'Groq Rate Limit Exceeded';
+    errorDescription = 'Groq API request quota or rate limit has been reached. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+  } else if (reason === 'GROQ_MODEL_UNAVAILABLE' || reason === 'MODEL_UNAVAILABLE') {
     statusPillText = 'Model Error';
     statusPillClass = 'warning';
-    errorTitle = 'Gemini Model Unavailable';
-    errorDescription = 'The configured Gemini model is unavailable or retired. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+    errorTitle = 'Groq Model Unavailable';
+    errorDescription = 'The configured Groq model is unavailable or retired. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
   } else if (
     availability?.status === 'TEMPORARILY_UNAVAILABLE' ||
+    reason === 'GROQ_SERVICE_UNAVAILABLE' ||
+    reason === 'GROQ_TIMEOUT' ||
     reason === 'SERVICE_UNAVAILABLE' ||
     reason === 'NETWORK_ERROR' ||
     reason === 'SERVICE_ERROR' ||
@@ -46,12 +48,12 @@ export default function AiAnalysisCard({ aiAnalysis, availability }) {
     statusPillText = 'Service Unavailable';
     statusPillClass = 'warning';
     errorTitle = 'Multimodal AI Engine Temporarily Unavailable';
-    errorDescription = 'Visual neural reasoning is temporarily unavailable from the Gemini service. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+    errorDescription = 'Visual neural reasoning is temporarily unavailable from the Groq service. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
   } else {
     statusPillText = 'Configuration Error';
     statusPillClass = 'unavailable';
     errorTitle = 'Multimodal AI Engine Inactive';
-    errorDescription = 'Visual neural reasoning is currently inactive because GEMINI_API_KEY is not configured in backend/.env. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
+    errorDescription = 'Visual neural reasoning is currently inactive because GROQ_API_KEY is not configured in backend/.env. In adherence to FindReal’s non-fabrication policy, visual scores are not simulated.';
   }
 
   return (

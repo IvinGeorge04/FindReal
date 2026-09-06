@@ -314,7 +314,7 @@ export default function Analyze() {
               <div className="analyze-pipeline-notice__text">
                 <strong>Forensic Pipeline Architecture Notice:</strong>
                 <p>
-                  This interface presents the 9 verification stages of FindReal. In accordance with our core engineering rules, <strong>no simulated AI scores or mock results are fabricated</strong>. Full backend multi-engine execution (ExifTool, C2PA, FFmpeg, Gemini) connects in the upcoming pipeline phase.
+                  This interface presents the 9 verification stages of FindReal. In accordance with our core engineering rules, <strong>no simulated AI scores or mock results are fabricated</strong>. Full backend multi-engine execution (ExifTool, C2PA, FFmpeg, Groq) connects in the upcoming pipeline phase.
                 </p>
               </div>
             </div>

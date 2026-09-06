@@ -106,7 +106,7 @@ const createAndRunAnalysis = async (req, res, next) => {
       manipulationRisk: pipelineReport.manipulationRisk,
       confidenceScore: pipelineReport.confidenceScore,
       evidence: {
-        aiAnalysis: pipelineReport.rawSignals.gemini,
+        aiAnalysis: pipelineReport.rawSignals.groq || pipelineReport.rawSignals.gemini,
         metadata: pipelineReport.rawSignals.metadata,
         provenance: pipelineReport.rawSignals.c2pa,
         sourceContext: sourceContext || null,

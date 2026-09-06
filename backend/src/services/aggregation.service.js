@@ -29,8 +29,11 @@ const EVIDENCE_CATEGORIES = {
 };
 
 const EVIDENCE_SOURCES = {
-  GEMINI_VISION: 'GEMINI_VISION',
-  GEMINI_AUDIO: 'GEMINI_AUDIO',
+  GROQ_VISION: 'GROQ_VISION',
+  GROQ_REASONING: 'GROQ_REASONING',
+  GROQ_AUDIO: 'GROQ_AUDIO',
+  GEMINI_VISION: 'GROQ_VISION', // backwards compatibility alias
+  GEMINI_AUDIO: 'GROQ_AUDIO', // backwards compatibility alias
   EXIFTOOL: 'EXIFTOOL',
   C2PA: 'C2PA',
   WHISPER: 'WHISPER',
@@ -53,7 +56,7 @@ const getRiskLevelFromScore = (score) => {
  * Synthesizes multiple evidence sources into a consolidated, probabilistic verification report.
  *
  * CRITICAL GUIDELINES ENFORCED:
- * 1. FindReal must combine multiple evidence sources rather than blindly treating Gemini's score as truth.
+ * 1. FindReal must combine multiple evidence sources rather than blindly treating AI scores as truth.
  * 2. Risk metric is strictly titled "Manipulation Risk" (NEVER "Probability the media is fake").
  * 3. Evidence availability is explicitly tracked. Unavailable evidence is NEVER treated as negative evidence.
  * 4. Absence of evidence (missing EXIF, missing C2PA, no fact-check match, unavailable source context)
@@ -63,7 +66,8 @@ const getRiskLevelFromScore = (score) => {
  *    "raises concerns", "no evidence found", "insufficient evidence".
  *
  * @param {Object} params
- * @param {Object} [params.geminiAnalysis] - Result from gemini.service.js
+ * @param {Object} [params.groqAnalysis] - Result from groq.service.js
+ * @param {Object} [params.geminiAnalysis] - Backwards compatibility alias
  * @param {Object} [params.metadata] - Result from metadata.service.js
  * @param {Object} [params.c2pa] - Result from c2pa.service.js
  * @param {Object} [params.mediaProcessing] - Result from ffmpeg.service.js (frames, probe, audio)
@@ -73,6 +77,8 @@ const getRiskLevelFromScore = (score) => {
  * @returns {Object} Consolidated forensic assessment report
  */
 const aggregateEvidenceAndAssessRisk = ({
+  groqAnalysis = null,
+  groqAvailability = null,
   geminiAnalysis = null,
   geminiAvailability = null,
   metadata = null,
@@ -85,23 +91,26 @@ const aggregateEvidenceAndAssessRisk = ({
   const evidenceItems = [];
   const limitations = [];
 
+  const aiAnalysis = groqAnalysis || geminiAnalysis;
+  const aiAvailability = groqAvailability || geminiAvailability;
+
   // -------------------------------------------------------------
   // 1. Explicit Evidence Availability Tracking
   // -------------------------------------------------------------
-  const visualStatus = geminiAnalysis && geminiAnalysis.assessment
+  const visualStatus = aiAnalysis && aiAnalysis.assessment
     ? 'AVAILABLE'
-    : geminiAvailability?.status === 'TEMPORARILY_UNAVAILABLE'
+    : aiAvailability?.status === 'TEMPORARILY_UNAVAILABLE'
     ? 'TEMPORARILY_UNAVAILABLE'
     : 'UNAVAILABLE';
 
   const evidenceAvailability = {
     visualAndAudioAI: {
       status: visualStatus,
-      reason: geminiAvailability?.reason || (visualStatus === 'AVAILABLE' ? null : 'API_KEY_NOT_CONFIGURED'),
-      message: geminiAvailability?.message || null,
-      model: geminiAvailability?.model || null,
-      label: 'Gemini Multimodal Reasoning',
-      source: EVIDENCE_SOURCES.GEMINI_VISION,
+      reason: aiAvailability?.reason || (visualStatus === 'AVAILABLE' ? null : 'API_KEY_NOT_CONFIGURED'),
+      message: aiAvailability?.message || null,
+      model: aiAvailability?.model || null,
+      label: 'Groq Multimodal Reasoning',
+      source: EVIDENCE_SOURCES.GROQ_VISION,
     },
     metadata: {
       status: metadata && metadata.available ? 'AVAILABLE' : 'UNAVAILABLE',
@@ -154,31 +163,31 @@ const aggregateEvidenceAndAssessRisk = ({
   // 2. Evidence Extraction from Sources
   // -------------------------------------------------------------
 
-  // A. Gemini Findings
-  let geminiRiskContribution = 0;
-  let geminiConfidence = 50;
-  let hasGeminiData = false;
+  // A. Groq Multimodal AI Findings
+  let aiRiskContribution = 0;
+  let aiConfidence = 50;
+  let hasAiData = false;
 
-  if (geminiAnalysis && typeof geminiAnalysis.riskScore === 'number') {
-    hasGeminiData = true;
-    geminiRiskContribution = geminiAnalysis.riskScore;
-    geminiConfidence = geminiAnalysis.confidence || 60;
+  if (aiAnalysis && typeof aiAnalysis.riskScore === 'number') {
+    hasAiData = true;
+    aiRiskContribution = aiAnalysis.riskScore;
+    aiConfidence = aiAnalysis.confidence || 60;
 
-    if (Array.isArray(geminiAnalysis.findings)) {
-      geminiAnalysis.findings.forEach((f) => {
+    if (Array.isArray(aiAnalysis.findings)) {
+      aiAnalysis.findings.forEach((f) => {
         evidenceItems.push({
           category: f.category?.toUpperCase() || EVIDENCE_CATEGORIES.VISUAL,
           finding: f.description || f.finding || 'Visual or acoustic artifact observed',
           severity: (f.severity || 'medium').toUpperCase(),
-          source: EVIDENCE_SOURCES.GEMINI_VISION,
-          confidence: geminiConfidence > 75 ? 'HIGH' : geminiConfidence > 45 ? 'MEDIUM' : 'LOW',
+          source: EVIDENCE_SOURCES.GROQ_VISION,
+          confidence: aiConfidence > 75 ? 'HIGH' : aiConfidence > 45 ? 'MEDIUM' : 'LOW',
           details: f.evidence || null,
         });
       });
     }
 
-    if (Array.isArray(geminiAnalysis.limitations)) {
-      limitations.push(...geminiAnalysis.limitations);
+    if (Array.isArray(aiAnalysis.limitations)) {
+      limitations.push(...aiAnalysis.limitations);
     }
   } else {
     limitations.push('AI multimodal reasoning service was unavailable during assessment.');
@@ -337,14 +346,14 @@ const aggregateEvidenceAndAssessRisk = ({
   // -------------------------------------------------------------
   let calculatedRisk = 30; // Default baseline uncertainty (INCONCLUSIVE anchor)
 
-  if (hasGeminiData) {
-    // Weighted synthesis: Gemini provides an analytical signal (50% weight),
+  if (hasAiData) {
+    // Weighted synthesis: Groq provides an analytical signal (50% weight),
     // adjusted by hard cryptographic provenance, metadata, and fact-checking.
-    let baseScore = geminiRiskContribution;
+    let baseScore = aiRiskContribution;
     let adjustedScore = baseScore + metadataRiskDelta + c2paRiskDelta + factCheckRiskDelta;
     calculatedRisk = adjustedScore;
   } else {
-    // If Gemini is unavailable, rely on available hard signals
+    // If AI is unavailable, rely on available hard signals
     let signalScore = 30 + metadataRiskDelta + c2paRiskDelta + factCheckRiskDelta;
     calculatedRisk = signalScore;
   }
@@ -359,7 +368,7 @@ const aggregateEvidenceAndAssessRisk = ({
   const riskLevel = getRiskLevelFromScore(manipulationRisk);
 
   // Determine overall confidence
-  let overallConfidence = hasGeminiData ? geminiConfidence : 35;
+  let overallConfidence = hasAiData ? aiConfidence : 35;
   if (isAiGen) {
     overallConfidence = Math.max(overallConfidence, 85);
   }
@@ -385,7 +394,7 @@ const aggregateEvidenceAndAssessRisk = ({
     verdict = VERDICT_TAXONOMY.SUSPICIOUS;
   } else {
     // 25 - 49 score range or low confidence
-    if (overallConfidence < 45 || !hasGeminiData) {
+    if (overallConfidence < 45 || !hasAiData) {
       verdict = VERDICT_TAXONOMY.INCONCLUSIVE;
     } else if (manipulationRisk < 35) {
       verdict = VERDICT_TAXONOMY.LIKELY_AUTHENTIC;
@@ -408,7 +417,7 @@ const aggregateEvidenceAndAssessRisk = ({
     hasValidProvenance,
     c2paStatus,
     metadata,
-    hasGeminiData,
+    hasAiData,
     factCheck,
   });
 
@@ -437,7 +446,7 @@ const generateEvidenceExplanation = ({
   hasValidProvenance,
   c2paStatus,
   metadata,
-  hasGeminiData,
+  hasAiData,
   factCheck,
 }) => {
   const sentences = [];
@@ -500,9 +509,9 @@ const generateEvidenceExplanation = ({
     sentences.push('Absence of embedded C2PA credentials or EXIF metadata is standard across internet distribution and was not treated as negative evidence.');
   }
 
-  // 5. Note on Gemini reasoning engine status
-  if (!hasGeminiData) {
-    sentences.push('Note: Deep neural visual reasoning was inactive because Gemini service credentials are not configured in backend/.env. Risk evaluation reflects container metadata and file inspection.');
+  // 5. Note on Groq reasoning engine status
+  if (!hasAiData) {
+    sentences.push('Note: Deep neural visual reasoning was inactive because Groq service credentials are not configured in backend/.env. Risk evaluation reflects container metadata and file inspection.');
   }
 
   return sentences.join(' ');

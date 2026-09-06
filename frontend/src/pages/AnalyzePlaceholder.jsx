@@ -42,7 +42,7 @@ export default function AnalyzePlaceholder() {
                   <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> ExifTool metadata & hardware serial extraction</li>
                   <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> C2PA cryptographic provenance manifest inspection</li>
                   <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> FFmpeg audio-visual stream decomposition</li>
-                  <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> Gemini reasoning engine cross-corroboration</li>
+                  <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> Groq reasoning engine cross-corroboration</li>
                 </ul>
               </div>
 

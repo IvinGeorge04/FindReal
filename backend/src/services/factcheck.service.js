@@ -59,10 +59,9 @@ const searchFactChecks = async (query) => {
   // API Key check
   const apiKey =
     process.env.FACT_CHECK_API_KEY ||
-    process.env.GOOGLE_FACT_CHECK_API_KEY ||
-    process.env.GEMINI_API_KEY;
+    process.env.GOOGLE_FACT_CHECK_API_KEY;
 
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'your_gemini_api_key_here') {
+  if (!apiKey || apiKey.trim() === '') {
     return {
       status: 'UNAVAILABLE',
       available: false,

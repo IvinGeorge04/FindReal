@@ -31,8 +31,11 @@ const config = {
   bodyLimit: process.env.BODY_LIMIT || '10mb',
   jwtSecret: process.env.JWT_SECRET || (isProduction ? '' : 'findreal_dev_only_jwt_secret_not_for_prod'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  groqModel: process.env.GROQ_MODEL || 'qwen/qwen3.6-27b',
+  // Backwards-compatibility aliases during migration
+  geminiApiKey: process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || '',
+  geminiModel: process.env.GROQ_MODEL || process.env.GEMINI_MODEL || 'qwen/qwen3.6-27b',
   apiPrefix: '/api/v1',
 };
 

@@ -18,5 +18,7 @@ services:
         value: "mongodb+srv://igfigma:figma@sjcet-website.aij6tqd.mongodb.net/findreal?retryWrites=true&w=majority&appName=SJCET-website"
       - key: JWT_SECRET
         generateValue: true
-      - key: GEMINI_API_KEY
+      - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: qwen/qwen3.6-27b
