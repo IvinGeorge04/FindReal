@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Scale,
   Sparkles,
+  Layers,
   Info
 } from 'lucide-react';
 import Card from '../components/Card/Card';
@@ -55,7 +56,7 @@ export default function About() {
                 Too often, online debates collapse into polarized claims: one side insists an authentic photograph is an &ldquo;AI deepfake,&rdquo; while another accepts a fabricated recording as fact. Generic AI detection widgets exacerbate the problem by offering opaque percentage scores without evidentiary proof or scientific methodology.
               </p>
               <p>
-                <strong>FindReal exists to restore evidentiary rigor.</strong> We equip researchers, journalists, fact-checkers, and digital citizens with an open, multi-signal verification pipeline that reveals what is detectable, what is missing, and what remains unknown.
+                <strong>FindReal exists to restore evidentiary rigor.</strong> We equip researchers, journalists, investigators, and digital citizens with an open, multi-signal verification pipeline that reveals what is detectable, what is missing, and what remains unknown.
               </p>
             </div>
 
@@ -65,7 +66,7 @@ export default function About() {
                 <h3 className="about-callout-title">The Non-Fabrication Guarantee</h3>
               </div>
               <p className="about-callout-text">
-                FindReal operates under a strict principle of non-fabrication. If an external metadata service, reverse index, or C2PA manifest reader is unreachable or missing, the platform displays <strong>&ldquo;Unavailable&rdquo;</strong> rather than fabricating or estimating results.
+                FindReal operates under a strict principle of non-fabrication. If an external metadata service, reverse index, or analysis engine is unreachable or missing, the platform displays <strong>&ldquo;Unavailable&rdquo;</strong> rather than fabricating or estimating results.
               </p>
               <div className="about-callout-footer">
                 <span>Core Engineering Standard</span>
@@ -109,13 +110,13 @@ export default function About() {
             </Card>
 
             <Card
-              title="3. C2PA Cryptographic Provenance"
-              subtitle="Coalition for Content Provenance and Authenticity"
-              icon={Fingerprint}
+              title="3. Media Processing & Stream Extraction"
+              subtitle="Frame decoding and acoustic forensics"
+              icon={Layers}
               elevation="sm"
             >
               <p className="card-prose">
-                We inspect embedded Content Credentials (C2PA JUMBF manifests). When present, cryptographic certificates confirm the original author, camera device, and complete edit history. When absent, the limitation is clearly noted.
+                Using FFmpeg, we decompress video streams into representative frames and isolate audio tracks for spectral cadence analysis, detecting frame-rate anomalies, repeated keyframes, and acoustic discontinuities.
               </p>
             </Card>
 

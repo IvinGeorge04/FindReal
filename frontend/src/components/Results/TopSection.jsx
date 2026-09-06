@@ -70,7 +70,7 @@ export default function TopSection({
               <VerdictBadge verdict={assessment} size="lg" />
             </div>
             <p className="results-summary-card__verdict-subtext">
-              Derived from synthesis of cryptographic provenance, container EXIF, acoustic cadences, and multimodal AI indicators.
+              Derived from synthesis of container EXIF, acoustic cadences, and multimodal AI indicators.
             </p>
           </div>
 

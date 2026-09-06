@@ -95,28 +95,45 @@ const getReportById = async (req, res, next) => {
       note: 'Missing EXIF or container metadata is common on web transfers and does not prove manipulation.',
     };
 
-    // Sanitize Provenance (C2PA)
-    const sanitizedProvenance = {
-      status: rawProv.status || 'NOT_FOUND',
-      isAiGenerated: Boolean(rawProv.isAiGenerated),
-      claimGenerator: rawProv.claimGenerator || null,
-      issuer: rawProv.issuer || null,
-      note: 'Absence of C2PA Content Credentials is standard across consumer devices and does not indicate falsification.',
-    };
+    // Sanitize Provenance (for backwards compatibility with existing stored records)
+    const sanitizedProvenance = rawProv
+      ? {
+          status: rawProv.status || 'NOT_FOUND',
+          isAiGenerated: Boolean(rawProv.isAiGenerated),
+          claimGenerator: rawProv.claimGenerator || null,
+          issuer: rawProv.issuer || null,
+        }
+      : null;
 
     // Sanitize Source Context
-    const sanitizedSourceContext = {
-      hasContext: Boolean(evidenceData.sourceContext?.url || analysis.mediaName),
-      ingestionType: evidenceData.sourceContext?.url ? 'URL' : 'DIRECT_UPLOAD',
-      url: evidenceData.sourceContext?.url || null,
-      note: 'Source searches may be incomplete.',
-    };
+    const sourceCtx = evidenceData.sourceContext;
+    const hasSource = Boolean(
+      sourceCtx?.hasContext && (sourceCtx?.url || sourceCtx?.publisher || sourceCtx?.notes || sourceCtx?.domain)
+    );
+    const sourceStatus = hasSource
+      ? 'AVAILABLE'
+      : sourceCtx?.status === 'UNAVAILABLE'
+      ? 'UNAVAILABLE'
+      : 'NOT_PROVIDED';
 
-    // Sanitize Fact Checks
-    const sanitizedFactChecks = {
-      status: evidenceData.factCheck?.matched ? 'MATCH_FOUND' : 'NO_MATCHING_RESULT',
-      claimTitle: evidenceData.factCheck?.claimTitle || null,
-      note: 'Absence of a fact-check record does not prove authenticity.',
+    const sanitizedSourceContext = {
+      status: sourceStatus,
+      hasContext: hasSource,
+      ingestionType: sourceCtx?.url ? 'URL' : 'DIRECT_UPLOAD',
+      url: sourceCtx?.url || null,
+      domain: sourceCtx?.domain || null,
+      publisher: sourceCtx?.publisher || null,
+      notes: sourceCtx?.notes || null,
+      message: hasSource
+        ? sourceCtx?.message || 'Asset ingested with verified source context.'
+        : sourceStatus === 'UNAVAILABLE'
+        ? 'Source context service unavailable.'
+        : 'No source context provided.',
+      note: hasSource
+        ? 'Source searches may be incomplete.'
+        : sourceStatus === 'UNAVAILABLE'
+        ? 'The external source-context service could not be reached or encountered an error.'
+        : 'This file was uploaded directly and does not contain a verified origin URL, publisher attribution, or contextual source information.',
     };
 
     // Safe sanitized verification report object
@@ -136,7 +153,6 @@ const getReportById = async (req, res, next) => {
       metadata: sanitizedMetadata,
       provenance: sanitizedProvenance,
       sourceContext: sanitizedSourceContext,
-      factChecks: sanitizedFactChecks,
       evidence: Array.isArray(analysis.evidenceItems) ? analysis.evidenceItems : [],
       explanation: analysis.explanation || 'Evidence aggregated across multiple independent signals.',
       limitations: Array.isArray(analysis.limitations) ? analysis.limitations : [],

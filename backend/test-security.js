@@ -3,7 +3,7 @@ const assert = require('assert');
 const { validateUrlSafety, isPrivateOrBlockedIP } = require('./src/utils/ssrfProtection');
 const { validateFileMagicBytes } = require('./src/utils/magicBytes');
 const { sanitizeOriginalFilename } = require('./src/utils/cleanup');
-const { sanitizeText, sanitizeUrl } = require('./src/services/factcheck.service');
+const { sanitizeText, sanitizeUrl } = require('./src/utils/sanitize');
 
 async function runSecurityAudit() {
   console.log('====================================================');

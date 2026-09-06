@@ -24,7 +24,6 @@ const EVIDENCE_CATEGORIES = {
   METADATA: 'METADATA',
   PROVENANCE: 'PROVENANCE',
   CONTEXT: 'CONTEXT',
-  FACT_CHECK: 'FACT_CHECK',
   TEMPORAL: 'TEMPORAL',
 };
 
@@ -35,10 +34,8 @@ const EVIDENCE_SOURCES = {
   GEMINI_VISION: 'GROQ_VISION', // backwards compatibility alias
   GEMINI_AUDIO: 'GROQ_AUDIO', // backwards compatibility alias
   EXIFTOOL: 'EXIFTOOL',
-  C2PA: 'C2PA',
   WHISPER: 'WHISPER',
   FRAME_INSPECTION: 'FRAME_INSPECTION',
-  FACT_CHECK: 'FACT_CHECK',
   SOURCE_CONTEXT: 'SOURCE_CONTEXT',
 };
 
@@ -59,8 +56,7 @@ const getRiskLevelFromScore = (score) => {
  * 1. FindReal must combine multiple evidence sources rather than blindly treating AI scores as truth.
  * 2. Risk metric is strictly titled "Manipulation Risk" (NEVER "Probability the media is fake").
  * 3. Evidence availability is explicitly tracked. Unavailable evidence is NEVER treated as negative evidence.
- * 4. Absence of evidence (missing EXIF, missing C2PA, no fact-check match, unavailable source context)
- *    must NOT automatically increase risk.
+ * 4. Absence of evidence (missing EXIF, unprovided source context) must NOT automatically increase risk.
  * 5. Assessment never produces "100% REAL" or "100% FAKE".
  * 6. Explanations use probabilistic, calibrated phrases: "may indicate", "possible", "consistent with",
  *    "raises concerns", "no evidence found", "insufficient evidence".
@@ -69,10 +65,8 @@ const getRiskLevelFromScore = (score) => {
  * @param {Object} [params.groqAnalysis] - Result from groq.service.js
  * @param {Object} [params.geminiAnalysis] - Backwards compatibility alias
  * @param {Object} [params.metadata] - Result from metadata.service.js
- * @param {Object} [params.c2pa] - Result from c2pa.service.js
  * @param {Object} [params.mediaProcessing] - Result from ffmpeg.service.js (frames, probe, audio)
  * @param {Object} [params.transcription] - Result from transcription.service.js
- * @param {Object} [params.factCheck] - Optional fact check result
  * @param {Object} [params.sourceContext] - Optional user/source context
  * @returns {Object} Consolidated forensic assessment report
  */
@@ -82,10 +76,8 @@ const aggregateEvidenceAndAssessRisk = ({
   geminiAnalysis = null,
   geminiAvailability = null,
   metadata = null,
-  c2pa = null,
   mediaProcessing = null,
   transcription = null,
-  factCheck = null,
   sourceContext = null,
 } = {}) => {
   const evidenceItems = [];
@@ -118,14 +110,6 @@ const aggregateEvidenceAndAssessRisk = ({
       source: EVIDENCE_SOURCES.EXIFTOOL,
       note: metadata && !metadata.available ? 'Stripped or absent metadata does not indicate manipulation.' : null,
     },
-    c2pa: {
-      status: c2pa && c2pa.status ? c2pa.status : 'UNAVAILABLE',
-      label: 'Content Credentials (C2PA)',
-      source: EVIDENCE_SOURCES.C2PA,
-      note: (c2pa?.status === 'NOT_FOUND' || c2pa?.status === 'UNAVAILABLE')
-        ? 'Absence of C2PA manifest is normal across web transfers and does not indicate manipulation.'
-        : null,
-    },
     mediaProcessing: {
       status: mediaProcessing && mediaProcessing.available ? 'AVAILABLE' : 'UNAVAILABLE',
       label: 'Bounded Representative Frame & Audio Extraction',
@@ -141,20 +125,20 @@ const aggregateEvidenceAndAssessRisk = ({
       source: EVIDENCE_SOURCES.WHISPER,
       note: 'Speech transcription is optional. Absence does not impact risk calculation.',
     },
-    factCheck: {
-      status: factCheck && factCheck.matched ? 'MATCH_FOUND' : factCheck?.status === 'NO_MATCHING_RESULT' ? 'NO_MATCHING_RESULT' : factCheck?.available ? 'NO_MATCHING_RESULT' : 'UNAVAILABLE',
-      label: 'Corroborating Fact-Check Database',
-      source: EVIDENCE_SOURCES.FACT_CHECK,
-      message: factCheck?.matched ? `Identified ${factCheck.matches?.length || 1} corroborating fact-check(s).` : 'No matching fact-check found.',
-      note: 'This does NOT mean the claim is true.',
-      matches: factCheck?.matches || [],
-    },
     sourceContext: {
-      status: sourceContext && sourceContext.hasContext ? 'AVAILABLE' : 'UNAVAILABLE',
+      status: sourceContext && sourceContext.hasContext
+        ? 'AVAILABLE'
+        : (sourceContext?.status === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'NOT_PROVIDED'),
       label: 'Source Context',
       source: EVIDENCE_SOURCES.SOURCE_CONTEXT,
-      message: sourceContext && sourceContext.hasContext ? sourceContext.message : 'Source context unavailable.',
-      note: 'Source searches may be incomplete.',
+      message: sourceContext && sourceContext.hasContext
+        ? sourceContext.message
+        : (sourceContext?.status === 'UNAVAILABLE'
+            ? (sourceContext?.message || 'Source context service unavailable.')
+            : 'No source context provided.'),
+      note: sourceContext?.note || (sourceContext?.status === 'UNAVAILABLE'
+            ? 'The external source-context service could not be reached or encountered an error.'
+            : 'This file was uploaded directly and does not contain a verified origin URL, publisher attribution, or contextual source information.'),
       data: sourceContext || null,
     },
   };
@@ -242,57 +226,7 @@ const aggregateEvidenceAndAssessRisk = ({
     limitations.push('Metadata was stripped or unavailable. Web platforms routinely strip EXIF.');
   }
 
-  // C. C2PA Provenance Findings
-  let c2paStatus = c2pa?.status || 'UNAVAILABLE';
-  let c2paRiskDelta = 0;
-  let hasValidProvenance = false;
-
-  if (c2paStatus === 'VALID') {
-    // Check if manifest indicates AI generation or certified hardware capture
-    if (c2pa?.isAiGenerated) {
-      c2paRiskDelta += 50;
-      evidenceItems.push({
-        category: EVIDENCE_CATEGORIES.PROVENANCE,
-        finding: `C2PA manifest explicitly certifies synthetic generation via ${c2pa.generatorName || 'generative model'}.`,
-        severity: 'HIGH',
-        source: EVIDENCE_SOURCES.C2PA,
-        confidence: 'HIGH',
-      });
-    } else {
-      hasValidProvenance = true;
-      c2paRiskDelta -= 40;
-      evidenceItems.push({
-        category: EVIDENCE_CATEGORIES.PROVENANCE,
-        finding: 'Cryptographically signed C2PA manifest verified. Chain of custody confirmed intact.',
-        severity: 'INFO',
-        source: EVIDENCE_SOURCES.C2PA,
-        confidence: 'HIGH',
-      });
-    }
-  } else if (c2paStatus === 'INVALID') {
-    c2paRiskDelta += 35; // Severe warning: manifest signature broken or tampered
-    evidenceItems.push({
-      category: EVIDENCE_CATEGORIES.PROVENANCE,
-      finding: 'C2PA manifest signature validation failed. Digital seal broken or container modified post-signature.',
-      severity: 'CRITICAL',
-      source: EVIDENCE_SOURCES.C2PA,
-      confidence: 'HIGH',
-    });
-  } else {
-    // NOT_FOUND or UNAVAILABLE: ZERO risk increase
-    if (c2paStatus === 'NOT_FOUND') {
-      evidenceItems.push({
-        category: EVIDENCE_CATEGORIES.PROVENANCE,
-        finding: 'No C2PA Content Credentials found. Consistent with typical consumer media.',
-        severity: 'INFO',
-        source: EVIDENCE_SOURCES.C2PA,
-        confidence: 'MEDIUM',
-      });
-    }
-    limitations.push('No cryptographic provenance credentials were found or verifiable for this asset.');
-  }
-
-  // D. Media Processing & Frame Findings
+  // C. Media Processing & Frame Findings
   if (mediaProcessing && mediaProcessing.available) {
     if (mediaProcessing.totalFramesExtracted > 0) {
       evidenceItems.push({
@@ -316,31 +250,6 @@ const aggregateEvidenceAndAssessRisk = ({
     });
   }
 
-  // F. Fact Check Findings
-  let factCheckRiskDelta = 0;
-  if (factCheck && factCheck.matched && Array.isArray(factCheck.matches) && factCheck.matches.length > 0) {
-    factCheckRiskDelta += 40;
-    factCheck.matches.forEach((m) => {
-      evidenceItems.push({
-        category: EVIDENCE_CATEGORIES.FACT_CHECK,
-        finding: `Fact-check record: "${m.claim}" - Rated "${m.verdict}" by ${m.publisher} (${m.date}).`,
-        severity: 'HIGH',
-        source: EVIDENCE_SOURCES.FACT_CHECK,
-        confidence: 'HIGH',
-        details: m.source || null,
-      });
-    });
-  } else if (factCheck && factCheck.matched) {
-    factCheckRiskDelta += 40;
-    evidenceItems.push({
-      category: EVIDENCE_CATEGORIES.FACT_CHECK,
-      finding: `Media matches known debunked or synthetic media record: "${factCheck.claimTitle || 'Known synthetic asset'}".`,
-      severity: 'HIGH',
-      source: EVIDENCE_SOURCES.FACT_CHECK,
-      confidence: 'HIGH',
-    });
-  }
-
   // -------------------------------------------------------------
   // 3. Multi-Signal Synthesis: Calculating "Manipulation Risk"
   // -------------------------------------------------------------
@@ -348,19 +257,14 @@ const aggregateEvidenceAndAssessRisk = ({
 
   if (hasAiData) {
     // Weighted synthesis: Groq provides an analytical signal (50% weight),
-    // adjusted by hard cryptographic provenance, metadata, and fact-checking.
+    // adjusted by hard container metadata.
     let baseScore = aiRiskContribution;
-    let adjustedScore = baseScore + metadataRiskDelta + c2paRiskDelta + factCheckRiskDelta;
+    let adjustedScore = baseScore + metadataRiskDelta;
     calculatedRisk = adjustedScore;
   } else {
     // If AI is unavailable, rely on available hard signals
-    let signalScore = 30 + metadataRiskDelta + c2paRiskDelta + factCheckRiskDelta;
+    let signalScore = 30 + metadataRiskDelta;
     calculatedRisk = signalScore;
-  }
-
-  // Provenance override: Valid un-tampered provenance strongly bounds risk
-  if (hasValidProvenance && c2paRiskDelta < 0) {
-    calculatedRisk = Math.min(calculatedRisk, 15);
   }
 
   // STRICT SCIENTIFIC BOUNDING: Never produce 0% or 100% certainty
@@ -372,21 +276,16 @@ const aggregateEvidenceAndAssessRisk = ({
   if (isAiGen) {
     overallConfidence = Math.max(overallConfidence, 85);
   }
-  if (c2paStatus === 'VALID' || c2paStatus === 'INVALID') {
-    overallConfidence = Math.min(95, overallConfidence + 15);
-  }
   if (metadata?.available) {
     overallConfidence = Math.min(95, overallConfidence + 5);
   }
 
   // -------------------------------------------------------------
-  // 4. Final Assessment Determination (Exact 5-state verdict)
+  // 4. Final Assessment Determination (Exact 4-state verdict)
   // -------------------------------------------------------------
   let verdict = VERDICT_TAXONOMY.INCONCLUSIVE;
 
-  if (hasValidProvenance && manipulationRisk < 20) {
-    verdict = VERDICT_TAXONOMY.VERIFIED_PROVENANCE;
-  } else if (manipulationRisk < 25 && overallConfidence >= 50) {
+  if (manipulationRisk < 25 && overallConfidence >= 50) {
     verdict = VERDICT_TAXONOMY.LIKELY_AUTHENTIC;
   } else if (manipulationRisk >= 75) {
     verdict = VERDICT_TAXONOMY.HIGH_MANIPULATION_RISK;
@@ -414,11 +313,8 @@ const aggregateEvidenceAndAssessRisk = ({
     riskLevel,
     manipulationRisk,
     evidenceItems,
-    hasValidProvenance,
-    c2paStatus,
     metadata,
     hasAiData,
-    factCheck,
   });
 
   return {
@@ -443,21 +339,13 @@ const generateEvidenceExplanation = ({
   riskLevel,
   manipulationRisk,
   evidenceItems,
-  hasValidProvenance,
-  c2paStatus,
   metadata,
   hasAiData,
-  factCheck,
 }) => {
   const sentences = [];
 
   // 1. Primary Verdict Orientation
   switch (verdict) {
-    case VERDICT_TAXONOMY.VERIFIED_PROVENANCE:
-      sentences.push(
-        'The media carries a valid, cryptographically intact C2PA manifest confirming certified provenance.'
-      );
-      break;
     case VERDICT_TAXONOMY.LIKELY_AUTHENTIC:
       sentences.push(
         'Forensic analysis observed characteristics consistent with authentic capture, with no clear indicators of generative synthesis.'
@@ -491,22 +379,20 @@ const generateEvidenceExplanation = ({
   } else if (mediumSeverityItems.length > 0) {
     const highlights = mediumSeverityItems.slice(0, 2).map((m) => m.finding).join(' Furthermore, ');
     sentences.push(`Observed contextual factors: ${highlights}.`);
-  } else if (verdict === VERDICT_TAXONOMY.LIKELY_AUTHENTIC || verdict === VERDICT_TAXONOMY.VERIFIED_PROVENANCE) {
+  } else if (verdict === VERDICT_TAXONOMY.LIKELY_AUTHENTIC) {
     sentences.push('No significant evidence of latent diffusion textures, vocal synthesis, or structural tampering was found.');
   }
 
-  // 3. Provenance and Metadata Context
-  if (c2paStatus === 'INVALID') {
-    sentences.push('Cryptographic provenance validation failed, which may indicate manifest tampering.');
-  } else if (metadata?.isGenerativeAi || metadata?.extracted?.isGenerativeAi) {
+  // 3. Metadata Context
+  if (metadata?.isGenerativeAi || metadata?.extracted?.isGenerativeAi) {
     sentences.push(`Asset container metadata records explicit generative AI parameters or provenance (${metadata.software || metadata.aiGeneratorName || 'Synthetic Model'}).`);
   } else if (metadata?.hasAiOrEditingSoftware) {
     sentences.push(`Metadata tags reference ${metadata.software}, which is consistent with digital editing.`);
   }
 
   // 4. Corroboration & Absence of Evidence Note
-  if (c2paStatus === 'NOT_FOUND' || !metadata?.available) {
-    sentences.push('Absence of embedded C2PA credentials or EXIF metadata is standard across internet distribution and was not treated as negative evidence.');
+  if (!metadata?.available) {
+    sentences.push('Absence of EXIF metadata is standard across internet distribution and was not treated as negative evidence.');
   }
 
   // 5. Note on Groq reasoning engine status

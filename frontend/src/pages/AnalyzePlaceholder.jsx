@@ -17,7 +17,7 @@ export default function AnalyzePlaceholder() {
             Media Analysis Pipeline
           </h1>
           <p className="analyze-placeholder__subtitle">
-            Upload images, audio, and video for multi-engine forensics, metadata extraction, C2PA manifest verification, and probabilistic AI evaluation.
+            Upload images, audio, and video for multi-engine forensics, metadata extraction, stream processing, and probabilistic AI evaluation.
           </p>
         </div>
 
@@ -40,7 +40,6 @@ export default function AnalyzePlaceholder() {
                 <h4>Scheduled Multi-Engine Verification Flow</h4>
                 <ul className="pipeline-list" role="list">
                   <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> ExifTool metadata & hardware serial extraction</li>
-                  <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> C2PA cryptographic provenance manifest inspection</li>
                   <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> FFmpeg audio-visual stream decomposition</li>
                   <li><CheckCircle2 size={16} className="check-icon" aria-hidden="true" /> Groq reasoning engine cross-corroboration</li>
                 </ul>

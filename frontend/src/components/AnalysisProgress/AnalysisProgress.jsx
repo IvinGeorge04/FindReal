@@ -29,11 +29,6 @@ export const PIPELINE_STAGES = [
     description: 'Extracting EXIF tags, camera hardware serials, and revision history',
   },
   {
-    id: 'checking_provenance',
-    title: 'Checking provenance',
-    description: 'Auditing cryptographic C2PA Content Credentials and author certificates',
-  },
-  {
     id: 'preparing_media',
     title: 'Preparing media',
     description: 'Decompressing streams, extracting focal keyframes, and normalizing audio channels',
@@ -46,7 +41,7 @@ export const PIPELINE_STAGES = [
   {
     id: 'checking_source_context',
     title: 'Checking source context',
-    description: 'Correlating first known appearance timeline and external claim registries',
+    description: 'Evaluating remote origin URL, domain records, and ingestion metadata',
   },
   {
     id: 'generating_explanation',

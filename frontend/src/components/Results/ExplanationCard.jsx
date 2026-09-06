@@ -40,7 +40,7 @@ export default function ExplanationCard({ explanation, verdict, riskLevel }) {
               <li>
                 <CheckCircle2 size={14} className="text-success" aria-hidden="true" />
                 <span>
-                  <strong>Absence of Evidence Respected:</strong> Missing metadata or absent C2PA manifests are treated as neutral distribution realities, never as affirmative proof of forgery.
+                  <strong>Absence of Evidence Respected:</strong> Missing metadata is treated as a neutral distribution reality, never as affirmative proof of forgery.
                 </span>
               </li>
               <li>

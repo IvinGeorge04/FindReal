@@ -3,7 +3,7 @@ export const VERDICT_CONFIG = {
   VERIFIED_PROVENANCE: {
     label: 'VERIFIED PROVENANCE',
     badgeClass: 'badge-verified',
-    description: 'Cryptographic C2PA provenance or authoritative manifest confirmed.',
+    description: 'Authoritative origin or chain of custody confirmed.',
   },
   LIKELY_AUTHENTIC: {
     label: 'LIKELY AUTHENTIC',

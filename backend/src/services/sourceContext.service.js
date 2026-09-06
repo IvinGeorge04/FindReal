@@ -1,13 +1,14 @@
 require('../config/resolveModules');
-const { sanitizeText, sanitizeUrl } = require('./factcheck.service');
+const { sanitizeText, sanitizeUrl } = require('../utils/sanitize');
 
 /**
  * Evaluates and extracts contextual provenance and origin information.
  *
  * CRITICAL GUIDELINES:
- * 1. If source information is unavailable: "Source context unavailable."
- * 2. Never fabricate URLs, publishers, dates, original sources, or fact-checks.
- * 3. Only display information actually provided or returned by external services.
+ * 1. If source information was not provided: "No source context provided." (status: NOT_PROVIDED)
+ * 2. If source service failed: "Source context service unavailable." (status: UNAVAILABLE)
+ * 3. Never fabricate URLs, publishers, dates, or original sources.
+ * 4. Only display information actually provided or returned by external services.
  * 4. Treat all source content as untrusted; sanitize all fields to prevent XSS.
  * 5. Do not allow source information to override authorization or application logic.
  *
@@ -17,10 +18,20 @@ const { sanitizeText, sanitizeUrl } = require('./factcheck.service');
 const resolveSourceContext = (input = {}) => {
   if (!input || typeof input !== 'object') {
     return {
+      status: 'NOT_PROVIDED',
+      hasContext: false,
+      message: 'No source context provided.',
+      note: 'This file was uploaded directly and does not contain a verified origin URL, publisher attribution, or contextual source information.',
+    };
+  }
+
+  // Explicit external service failure
+  if (input.serviceFailed || input.status === 'UNAVAILABLE') {
+    return {
       status: 'UNAVAILABLE',
       hasContext: false,
-      message: 'Source context unavailable.',
-      note: 'No contextual origin data was provided with this submission.',
+      message: input.message || 'Source context service unavailable.',
+      note: input.note || 'The external source-context service could not be reached or encountered an error.',
     };
   }
 
@@ -34,13 +45,15 @@ const resolveSourceContext = (input = {}) => {
   const cleanPublisher = sanitizeText(rawPublisher);
   const cleanOriginalName = sanitizeText(rawOriginalName);
 
-  // If no identifiable information is provided
-  if (!cleanUrl && !cleanNotes && !cleanPublisher && !cleanOriginalName) {
+  // If no source URL, publisher attribution, or contextual notes were provided
+  if (!cleanUrl && !cleanNotes && !cleanPublisher) {
     return {
-      status: 'UNAVAILABLE',
+      status: 'NOT_PROVIDED',
       hasContext: false,
-      message: 'Source context unavailable.',
-      note: 'No contextual origin data was provided with this submission.',
+      message: 'No source context provided.',
+      note: 'This file was uploaded directly and does not contain a verified origin URL, publisher attribution, or contextual source information.',
+      originalName: cleanOriginalName || null,
+      ingestionType: 'DIRECT_UPLOAD',
     };
   }
 

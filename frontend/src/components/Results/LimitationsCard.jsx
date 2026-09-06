@@ -18,10 +18,6 @@ export default function LimitationsCard({ limitations = [] }) {
       desc: 'Most major social platforms (WhatsApp, X, Instagram) strip EXIF and container headers automatically upon ingestion to safeguard privacy.',
     },
     {
-      title: 'Missing C2PA does NOT prove manipulation',
-      desc: 'C2PA Content Credentials adoption remains in early industry stages; the vast majority of consumer hardware does not yet sign files.',
-    },
-    {
       title: 'Source searches may be incomplete',
       desc: 'Internet crawls and perceptual reverse-image registries do not index private networks, encrypted chats, or offline archives.',
     },

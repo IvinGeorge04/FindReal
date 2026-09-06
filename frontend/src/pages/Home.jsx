@@ -18,8 +18,7 @@ import {
   Globe, 
   HelpCircle,
   Clock,
-  Compass,
-  FileCheck
+  Compass
 } from 'lucide-react';
 import VerdictBadge from '../components/VerdictBadge/VerdictBadge';
 import EvidenceMeter from '../components/EvidenceMeter/EvidenceMeter';
@@ -122,16 +121,16 @@ export default function Home() {
                       <span className="signal-status status-suspicious">Anomalies Detected</span>
                     </div>
 
-                    {/* Signal 2: Provenance (C2PA) */}
+                    {/* Signal 2: Media Processing */}
                     <div className="signal-mini-card">
                       <div className="signal-mini-card__header">
-                        <Fingerprint size={15} className="signal-icon signal-icon--amber" aria-hidden="true" />
-                        <span className="signal-title">C2PA Provenance</span>
+                        <Layers size={15} className="signal-icon signal-icon--amber" aria-hidden="true" />
+                        <span className="signal-title">Media Processing</span>
                       </div>
                       <p className="signal-desc">
-                        No cryptographic Content Credentials manifest found in asset stream.
+                        Stream structure, frame rates, and encoding parameters analyzed.
                       </p>
-                      <span className="signal-status status-missing">Manifest Missing</span>
+                      <span className="signal-status status-verified">Streams Verified</span>
                     </div>
 
                     {/* Signal 3: Metadata Integrity */}
@@ -199,13 +198,13 @@ export default function Home() {
             </Card>
 
             <Card
-              title="The Provenance Gap"
-              subtitle="Cryptographic tracking"
-              icon={Fingerprint}
+              title="Stream & Container Analysis"
+              subtitle="Deep media inspection"
+              icon={Layers}
               elevation="md"
             >
               <p className="card-text">
-                Social media platforms strip camera EXIF data and timestamps upon upload. FindReal inspects C2PA cryptographic manifests to reconstruct the asset&apos;s digital chain of custody.
+                Social media platforms strip camera EXIF data upon upload. FindReal analyzes underlying container structures, codecs, and stream encodings to detect inconsistencies.
               </p>
             </Card>
 
@@ -250,7 +249,7 @@ export default function Home() {
                 <li><CheckCircle2 size={15} className="list-check" aria-hidden="true" /> EXIF & Camera Hardware Consistency</li>
                 <li><CheckCircle2 size={15} className="list-check" aria-hidden="true" /> Latent Diffusion Texture Artifacts</li>
                 <li><CheckCircle2 size={15} className="list-check" aria-hidden="true" /> Error Level & Compression Splicing</li>
-                <li><CheckCircle2 size={15} className="list-check" aria-hidden="true" /> C2PA Content Credentials Manifests</li>
+                <li><CheckCircle2 size={15} className="list-check" aria-hidden="true" /> Stream Structure & Codec Integrity</li>
               </ul>
             </div>
 
@@ -333,7 +332,7 @@ export default function Home() {
               <div className="step-item__content">
                 <h3 className="step-item__title">Analyze</h3>
                 <p className="step-item__desc">
-                  ExifTool extracts metadata, FFmpeg inspects stream structures, and cryptographic libraries probe for C2PA provenance manifests.
+                  ExifTool extracts metadata, FFmpeg inspects stream structures, and multimodal models probe for generative anomalies.
                 </p>
               </div>
             </div>
@@ -372,7 +371,7 @@ export default function Home() {
               Evidence-Based Verification
             </h2>
             <p className="section-header__desc">
-              Authenticity cannot be reduced to a single score. FindReal synthesizes five distinct evidentiary layers before formulating an assessment.
+              Authenticity cannot be reduced to a single score. FindReal synthesizes multiple distinct evidentiary layers before formulating an assessment.
             </p>
           </div>
 
@@ -402,11 +401,11 @@ export default function Home() {
             {/* Pillar 3 */}
             <div className="pillar-card">
               <div className="pillar-card__icon pillar-icon--emerald">
-                <Fingerprint size={22} aria-hidden="true" />
+                <Layers size={22} aria-hidden="true" />
               </div>
-              <h3 className="pillar-card__title">3. Provenance & C2PA</h3>
+              <h3 className="pillar-card__title">3. Stream & Media Processing</h3>
               <p className="pillar-card__desc">
-                Cryptographic manifest verification verifies whether the asset carries certified Content Credentials from cameras, editors, or accredited publishers.
+                FFmpeg container analysis inspects frame compression cadences, stream packaging, audio spectral profiles, and encoding signatures.
               </p>
             </div>
 
@@ -420,17 +419,6 @@ export default function Home() {
                 Timeline tracking assesses when the media first surfaced online, detecting re-captioned historical assets circulated out of context as breaking news.
               </p>
             </div>
-
-            {/* Pillar 5 */}
-            <div className="pillar-card">
-              <div className="pillar-card__icon pillar-icon--blue">
-                <FileCheck size={22} aria-hidden="true" />
-              </div>
-              <h3 className="pillar-card__title">5. Fact-Checking Integration</h3>
-              <p className="pillar-card__desc">
-                Correlation against verified public claim registries helps uncover previously debunked hoaxes, false claims, and manipulated viral narratives.
-              </p>
-            </div>
           </div>
 
           {/* Critical Non-Certainty Callout Box */}
@@ -439,7 +427,7 @@ export default function Home() {
             <div className="core-rule-content">
               <h4 className="core-rule-title">Core Principle: No Single Signal Proves Authenticity</h4>
               <p className="core-rule-text">
-                An image with valid EXIF metadata can still contain generative elements. An asset lacking C2PA provenance may simply have been shared through a social platform that strips headers. FindReal always evaluates the totality of evidence and communicates uncertainty honestly.
+                An image with valid EXIF metadata can still contain generative elements. An asset lacking EXIF headers may simply have been shared through a social platform that strips metadata. FindReal always evaluates the totality of evidence and communicates uncertainty honestly.
               </p>
             </div>
           </div>

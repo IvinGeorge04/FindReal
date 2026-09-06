@@ -108,8 +108,8 @@ const createAndRunAnalysis = async (req, res, next) => {
       evidence: {
         aiAnalysis: pipelineReport.rawSignals.groq || pipelineReport.rawSignals.gemini,
         metadata: pipelineReport.rawSignals.metadata,
-        provenance: pipelineReport.rawSignals.c2pa,
-        sourceContext: sourceContext || null,
+        provenance: null,
+        sourceContext: pipelineReport.rawSignals.sourceContext || sourceContext || null,
         mediaProcessing: pipelineReport.rawSignals.mediaProcessing,
         transcription: pipelineReport.rawSignals.transcription,
       },

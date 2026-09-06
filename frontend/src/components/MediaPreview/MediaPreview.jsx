@@ -158,7 +158,7 @@ export default function MediaPreview({ file, onRemove, onAnalyze, isAnalyzing = 
           <div className="pipeline-notice">
             <Info size={14} className="pipeline-notice-icon" aria-hidden="true" />
             <p>
-              Submitting this file initiates metadata extraction, cryptographic C2PA checks, and generative pattern detection.
+              Submitting this file initiates metadata extraction, stream processing, and generative pattern detection.
             </p>
           </div>
 

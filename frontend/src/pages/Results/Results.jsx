@@ -13,9 +13,7 @@ import api from '../../services/api';
 import TopSection from '../../components/Results/TopSection';
 import AiAnalysisCard from '../../components/Results/AiAnalysisCard';
 import MetadataCard from '../../components/Results/MetadataCard';
-import ProvenanceCard from '../../components/Results/ProvenanceCard';
 import SourceContextCard from '../../components/Results/SourceContextCard';
-import FactChecksCard from '../../components/Results/FactChecksCard';
 import EvidenceCard from '../../components/Results/EvidenceCard';
 import ExplanationCard from '../../components/Results/ExplanationCard';
 import LimitationsCard from '../../components/Results/LimitationsCard';
@@ -140,9 +138,7 @@ export default function Results() {
   const evidenceObj = analysis.evidence || {};
   const aiAnalysis = evidenceObj.aiAnalysis || null;
   const metadata = evidenceObj.metadata || null;
-  const provenance = evidenceObj.provenance || null;
   const sourceContext = evidenceObj.sourceContext || null;
-  const factCheck = evidenceObj.factCheck || null;
 
   const availability = analysis.evidenceAvailability || {};
   const evidenceItems = analysis.evidenceItems || [];
@@ -210,23 +206,12 @@ export default function Results() {
             availability={availability.metadata}
           />
 
-          {/* PROVENANCE CARD */}
-          <ProvenanceCard
-            provenance={provenance}
-            availability={availability.c2pa}
-          />
-
           {/* SOURCE CONTEXT CARD */}
           <SourceContextCard
             sourceContext={sourceContext}
+            availability={availability.sourceContext}
             mediaName={mediaName}
             mediaType={mediaType}
-          />
-
-          {/* FACT CHECKS CARD */}
-          <FactChecksCard
-            factCheck={factCheck}
-            availability={availability.factCheck}
           />
 
           {/* ITEMIZED EVIDENCE CARD (Full Width) */}

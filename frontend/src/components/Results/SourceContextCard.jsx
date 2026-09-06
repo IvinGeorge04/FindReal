@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Link as LinkIcon, Info, ExternalLink, Building, Calendar, FileText } from 'lucide-react';
+import { Globe, Link as LinkIcon, Info, Building, FileText } from 'lucide-react';
 import './ResultCard.css';
 
 /**
@@ -7,16 +7,40 @@ import './ResultCard.css';
  * Displays validated source context and origin metadata.
  * 
  * Strict Non-Fabrication:
- * - If unavailable: "Source context unavailable."
- * - Never fabricate: URLs, publishers, dates, original sources, or fact-checks.
+ * - NOT PROVIDED: File uploaded directly without source URL, publisher, or notes.
+ * - UNAVAILABLE: External source-context service failed or was unreachable.
+ * - AVAILABLE / URL Source: Verified source information exists.
+ * - Never fabricate: URLs, publishers, dates, or original sources.
  * - Only display information actually returned by external services or provided.
  * - Content rendered strictly as safe text (never raw HTML).
  */
-export default function SourceContextCard({ sourceContext, mediaName, mediaType }) {
+export default function SourceContextCard({ sourceContext, availability, mediaName, mediaType }) {
   const hasContext = Boolean(
-    sourceContext?.hasContext && 
+    (sourceContext?.hasContext || sourceContext?.url || sourceContext?.publisher || sourceContext?.notes) && 
     (sourceContext?.url || sourceContext?.publisher || sourceContext?.notes || sourceContext?.domain)
   );
+
+  // Distinguish explicitly between service failure (UNAVAILABLE) and missing source info (NOT PROVIDED)
+  const isServiceUnavailable = !hasContext && (
+    sourceContext?.status === 'UNAVAILABLE' || 
+    (availability?.status === 'UNAVAILABLE' && availability?.serviceFailed)
+  );
+
+  const getStatusText = () => {
+    if (hasContext) {
+      return sourceContext?.url ? 'URL Source' : 'Context Recorded';
+    }
+    if (isServiceUnavailable) {
+      return 'UNAVAILABLE';
+    }
+    return 'NOT PROVIDED';
+  };
+
+  const getStatusPillClass = () => {
+    if (hasContext) return 'status-pill--available';
+    if (isServiceUnavailable) return 'status-pill--warning';
+    return 'status-pill--neutral';
+  };
 
   return (
     <section className="result-card" aria-labelledby="source-context-title">
@@ -29,8 +53,8 @@ export default function SourceContextCard({ sourceContext, mediaName, mediaType 
             Source Context
           </h2>
         </div>
-        <span className={`status-pill status-pill--${hasContext ? 'available' : 'neutral'}`}>
-          {hasContext ? (sourceContext?.url ? 'URL Source' : 'Context Recorded') : 'Unavailable'}
+        <span className={`status-pill ${getStatusPillClass()}`}>
+          {getStatusText()}
         </span>
       </div>
 
@@ -82,13 +106,25 @@ export default function SourceContextCard({ sourceContext, mediaName, mediaType 
               </div>
             )}
           </div>
+        ) : isServiceUnavailable ? (
+          <div className="unavailable-state">
+            <Info size={18} className="unavailable-state__icon text-warning" aria-hidden="true" />
+            <div className="unavailable-state__text">
+              <strong>Source context service unavailable.</strong>
+              <p>
+                {sourceContext?.note ||
+                  sourceContext?.message ||
+                  'The external source-context service could not be reached or encountered an error. Source records could not be retrieved.'}
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="unavailable-state">
             <Info size={18} className="unavailable-state__icon text-info" aria-hidden="true" />
             <div className="unavailable-state__text">
-              <strong>Source context unavailable.</strong>
+              <strong>No source context provided.</strong>
               <p>
-                No verified origin URL, publisher attribution, or contextual notes accompanied this asset. In accordance with FindReal's non-fabrication guarantee, source provenance is never invented.
+                This file was uploaded directly and does not contain a verified origin URL, publisher attribution, or contextual source information.
               </p>
             </div>
           </div>

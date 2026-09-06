@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && node scripts/install-c2patool.js
+    buildCommand: npm install
     startCommand: node server.js
     healthCheckPath: /api/v1/health
     envVars:

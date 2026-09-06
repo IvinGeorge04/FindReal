@@ -33,7 +33,7 @@ export default function Footer() {
               <span className="footer__brand-title">FindReal Platform</span>
             </div>
             <p className="footer__col-desc">
-              Open standards-aligned media verification platform. Supporting C2PA provenance, ExifTool metadata inspection, and AI synthetic pattern detection.
+              Open standards-aligned media verification platform. Supporting ExifTool metadata inspection, stream processing, and AI synthetic pattern detection.
             </p>
           </div>
 

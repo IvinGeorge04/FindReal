@@ -2,11 +2,9 @@ require('../config/resolveModules');
 const path = require('path');
 const fs = require('fs');
 const metadataService = require('./metadata.service');
-const c2paService = require('./c2pa.service');
 const ffmpegService = require('./ffmpeg.service');
 const transcriptionService = require('./transcription.service');
 const groqService = require('./groq.service');
-const factcheckService = require('./factcheck.service');
 const sourceContextService = require('./sourceContext.service');
 const aggregationService = require('./aggregation.service');
 const { TEMP_STORAGE_DIR } = require('../middleware/upload.middleware');
@@ -16,11 +14,9 @@ const { TEMP_STORAGE_DIR } = require('../middleware/upload.middleware');
  *
  * Fault tolerance rules:
  * - If ExifTool is missing: continues with controlled UNAVAILABLE.
- * - If C2PA is missing: continues with controlled UNAVAILABLE.
  * - If FFmpeg is missing: continues with controlled UNAVAILABLE.
  * - If Whisper is missing: continues with controlled UNAVAILABLE.
  * - If Groq is unconfigured/fails: continues with controlled UNAVAILABLE, aggregating other signals.
- * - If Fact Check API is unconfigured: continues with controlled UNAVAILABLE (never invents).
  * - Never crashes the application.
  *
  * @param {Object} media - Media record with filePath, type, mimeType, originalName
@@ -40,15 +36,7 @@ const runForensicPipeline = async (media, options = {}) => {
     metadataResult = { status: 'UNAVAILABLE', available: false, message: err.message };
   }
 
-  // 2. Cryptographic Provenance inspection via C2PA
-  let c2paResult = null;
-  try {
-    c2paResult = await c2paService.verifyC2PA(filePath);
-  } catch (err) {
-    c2paResult = { status: 'UNAVAILABLE', available: false, message: err.message };
-  }
-
-  // 3. Media Processing (Frames and Audio Extraction)
+  // 2. Media Processing (Frames and Audio Extraction)
   let mediaProcessingResult = null;
   let audioForTranscriptionPath = null;
 
@@ -105,31 +93,12 @@ const runForensicPipeline = async (media, options = {}) => {
     sourceContextResult = {
       status: 'UNAVAILABLE',
       hasContext: false,
-      message: 'Source context unavailable.',
+      message: 'Source context service unavailable.',
+      note: 'The external source-context service could not be reached or encountered an error.',
     };
   }
 
-  // 6. Fact Check Verification (Google Fact Check Tools API)
-  let factCheckResult = null;
-  try {
-    const searchQuery =
-      options.userClaim ||
-      transcriptionResult?.transcript ||
-      (sourceContextResult?.notes ? sourceContextResult.notes : '');
-
-    factCheckResult = await factcheckService.searchFactChecks(searchQuery);
-  } catch (err) {
-    factCheckResult = {
-      status: 'UNAVAILABLE',
-      available: false,
-      matched: false,
-      message: 'No matching fact-check found.',
-      note: 'This does NOT mean the claim is true.',
-      matches: [],
-    };
-  }
-
-  // 7. Multimodal Reasoning via Groq
+  // 6. Multimodal Reasoning via Groq
   let groqResult = null;
   let groqAvailability = { status: 'UNAVAILABLE', reason: 'NOT_ATTEMPTED' };
   try {
@@ -166,17 +135,15 @@ const runForensicPipeline = async (media, options = {}) => {
     groqAvailability = { status: 'UNAVAILABLE', reason: 'UNEXPECTED_ERROR' };
   }
 
-  // 8. Evidence Aggregation and Transparent Risk Assessment
+  // 7. Evidence Aggregation and Transparent Risk Assessment
   const assessmentReport = aggregationService.aggregateEvidenceAndAssessRisk({
     groqAnalysis: groqResult,
     groqAvailability,
     geminiAnalysis: groqResult, // backwards-compatible alias
     geminiAvailability: groqAvailability, // backwards-compatible alias
     metadata: metadataResult,
-    c2pa: c2paResult,
     mediaProcessing: mediaProcessingResult,
     transcription: transcriptionResult,
-    factCheck: factCheckResult,
     sourceContext: sourceContextResult,
   });
 
@@ -184,13 +151,11 @@ const runForensicPipeline = async (media, options = {}) => {
     ...assessmentReport,
     rawSignals: {
       metadata: metadataResult,
-      c2pa: c2paResult,
       mediaProcessing: mediaProcessingResult,
       transcription: transcriptionResult,
       groq: groqResult,
       gemini: groqResult, // legacy alias for consumers expecting .gemini
       sourceContext: sourceContextResult,
-      factCheck: factCheckResult,
     },
   };
 };

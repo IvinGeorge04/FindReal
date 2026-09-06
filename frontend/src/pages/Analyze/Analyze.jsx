@@ -293,7 +293,7 @@ export default function Analyze() {
             Analyze Media Authenticity
           </h1>
           <p className="analyze-header__lead">
-            Submit media for multi-signal verification. Inspect EXIF metadata, C2PA cryptographic provenance, latent generative diffusion signatures, and source context.
+            Submit media for multi-signal verification. Inspect EXIF metadata, latent generative diffusion signatures, and source context.
           </p>
         </section>
 
@@ -314,7 +314,7 @@ export default function Analyze() {
               <div className="analyze-pipeline-notice__text">
                 <strong>Forensic Pipeline Architecture Notice:</strong>
                 <p>
-                  This interface presents the 9 verification stages of FindReal. In accordance with our core engineering rules, <strong>no simulated AI scores or mock results are fabricated</strong>. Full backend multi-engine execution (ExifTool, C2PA, FFmpeg, Groq) connects in the upcoming pipeline phase.
+                  This interface presents the multi-signal verification stages of FindReal. In accordance with our core engineering rules, <strong>no simulated AI scores or mock results are fabricated</strong>. Full backend multi-engine execution (ExifTool, FFmpeg, Groq) connects live in the pipeline.
                 </p>
               </div>
             </div>
